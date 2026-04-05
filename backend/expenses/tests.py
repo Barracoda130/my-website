@@ -46,12 +46,24 @@ class ExpenseApiTests(APITestCase):
             return self.client.cookies["csrftoken"].value
         return csrf_token
 
-    def test_create_and_list_categories(self):
+    def test_category_list_bootstraps_default_categories(self):
+        self._authenticate()
+
+        list_response = self.client.get(self.categories_url)
+
+        self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+        category_names = {item["name"] for item in list_response.data}
+        self.assertIn("Food", category_names)
+        self.assertIn("Transport", category_names)
+        self.assertIn("Housing", category_names)
+
+    def test_create_and_list_custom_category(self):
         csrf_token = self._authenticate()
+        self.client.get(self.categories_url)
 
         create_response = self.client.post(
             self.categories_url,
-            {"name": "Food", "color": "#ef4444"},
+            {"name": "Pet Care", "color": "#22c55e"},
             format="json",
             HTTP_X_CSRFTOKEN=csrf_token,
         )
@@ -59,8 +71,18 @@ class ExpenseApiTests(APITestCase):
 
         list_response = self.client.get(self.categories_url)
         self.assertEqual(list_response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(list_response.data), 1)
-        self.assertEqual(list_response.data[0]["name"], "Food")
+        category_names = [item["name"] for item in list_response.data]
+        self.assertIn("Pet Care", category_names)
+
+    def test_default_categories_are_seeded_only_once(self):
+        self._authenticate()
+
+        first_response = self.client.get(self.categories_url)
+        second_response = self.client.get(self.categories_url)
+
+        self.assertEqual(first_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(second_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(first_response.data), len(second_response.data))
 
     def test_create_entry_rejects_other_users_category(self):
         csrf_token = self._authenticate()

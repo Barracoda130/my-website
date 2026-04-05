@@ -15,6 +15,31 @@ from .serializers import (
 )
 
 
+DEFAULT_EXPENSE_CATEGORIES: tuple[tuple[str, str], ...] = (
+    ("Food", "#ef4444"),
+    ("Transport", "#0ea5e9"),
+    ("Housing", "#8b5cf6"),
+    ("Utilities", "#f59e0b"),
+    ("Entertainment", "#10b981"),
+    ("Health", "#ec4899"),
+)
+
+
+def _ensure_default_categories(user) -> None:
+    existing_names = set(
+        ExpenseCategory.objects.filter(user=user).values_list("name", flat=True)
+    )
+
+    categories_to_create = [
+        ExpenseCategory(user=user, name=name, color=color)
+        for name, color in DEFAULT_EXPENSE_CATEGORIES
+        if name not in existing_names
+    ]
+
+    if categories_to_create:
+        ExpenseCategory.objects.bulk_create(categories_to_create)
+
+
 def _parse_iso_date(raw_value: str | None, field_name: str) -> date | None:
     if not raw_value:
         return None
@@ -52,6 +77,7 @@ class ExpenseCategoryListCreateView(generics.ListCreateAPIView):
     queryset = ExpenseCategory.objects.none()
 
     def get_queryset(self):  # type: ignore[override]
+        _ensure_default_categories(self.request.user)
         return ExpenseCategory.objects.filter(user=self.request.user).order_by("name")
 
     def perform_create(self, serializer):

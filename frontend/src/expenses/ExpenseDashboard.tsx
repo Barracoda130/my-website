@@ -54,9 +54,9 @@ function ExpenseDashboard() {
   const [filterTo, setFilterTo] = useState("");
   const [filterCategoryId, setFilterCategoryId] = useState("");
 
-  const currencyFormatter = new Intl.NumberFormat("en-US", {
+  const currencyFormatter = new Intl.NumberFormat("en-GB", {
     style: "currency",
-    currency: "USD",
+    currency: "GBP",
   });
 
   const getCurrentFilters = useCallback((): ExpenseEntryFilters => {

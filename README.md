@@ -53,6 +53,16 @@ Supported query params for list/summary:
 - `to=YYYY-MM-DD`
 - `category=<id>`
 
+Starter categories are created automatically per user the first time categories are fetched:
+- Food
+- Transport
+- Housing
+- Utilities
+- Entertainment
+- Health
+
+Users can still create any additional custom categories from the UI.
+
 ## Contract Generation
 
 From repo root:
