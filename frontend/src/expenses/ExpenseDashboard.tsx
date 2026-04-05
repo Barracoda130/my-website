@@ -30,10 +30,182 @@ import ExpenseAnalyticsPanel from "./components/ExpenseAnalyticsPanel";
 import CreateExpenseForm from "./components/CreateExpenseForm";
 import ExpenseEntriesTable from "./components/ExpenseEntriesTable";
 import ExpenseFiltersForm from "./components/ExpenseFiltersForm";
+import ImportTransactionsForm from "./components/ImportTransactionsForm";
 import ExpenseSummaryCards from "./components/ExpenseSummaryCards";
 import SessionPanel from "./components/SessionPanel";
 
 type DashboardTab = "view" | "create" | "budget" | "analytics";
+
+interface ParsedCsvTransaction {
+  title: string;
+  notes: string;
+  amount: number;
+  spentAt: string;
+  categoryName: string;
+  entryType: EntryType;
+}
+
+const REQUIRED_CSV_HEADERS = [
+  "Date",
+  "Counter Party",
+  "Reference",
+  "Type",
+  "Amount (GBP)",
+  "Spending Category",
+] as const;
+
+const IMPORT_CATEGORY_COLORS = [
+  "#ef4444",
+  "#0ea5e9",
+  "#8b5cf6",
+  "#f59e0b",
+  "#10b981",
+  "#ec4899",
+];
+
+function parseCsvRows(rawCsv: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < rawCsv.length; index += 1) {
+    const character = rawCsv[index];
+
+    if (character === '"') {
+      if (inQuotes && rawCsv[index + 1] === '"') {
+        field += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (character === "," && !inQuotes) {
+      row.push(field);
+      field = "";
+      continue;
+    }
+
+    if ((character === "\n" || character === "\r") && !inQuotes) {
+      if (character === "\r" && rawCsv[index + 1] === "\n") {
+        index += 1;
+      }
+
+      row.push(field);
+      field = "";
+
+      if (row.some((value) => value.trim().length > 0)) {
+        rows.push(row);
+      }
+
+      row = [];
+      continue;
+    }
+
+    field += character;
+  }
+
+  row.push(field);
+  if (row.some((value) => value.trim().length > 0)) {
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+function parseCsvDate(rawDate: string): string | null {
+  const match = rawDate.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) {
+    return null;
+  }
+
+  const [, day, month, year] = match;
+  const parsedDate = new Date(`${year}-${month}-${day}T00:00:00Z`);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return null;
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
+function normalizeImportedCategoryName(rawCategory: string): string {
+  const cleaned = rawCategory.trim();
+  if (!cleaned) {
+    return "";
+  }
+
+  return cleaned
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((part) => part.length > 0)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function parseImportedTransactionsCsv(rawCsv: string): ParsedCsvTransaction[] {
+  const rows = parseCsvRows(rawCsv);
+  if (rows.length < 2) {
+    throw new Error("No transaction rows found in CSV.");
+  }
+
+  const headers = rows[0].map((header, index) => {
+    if (index === 0) {
+      return header.replace(/^\uFEFF/, "").trim();
+    }
+    return header.trim();
+  });
+
+  const headerIndexByName = new Map<string, number>();
+  headers.forEach((header, index) => {
+    headerIndexByName.set(header, index);
+  });
+
+  for (const header of REQUIRED_CSV_HEADERS) {
+    if (!headerIndexByName.has(header)) {
+      throw new Error(`Missing required CSV column: ${header}`);
+    }
+  }
+
+  const transactions: ParsedCsvTransaction[] = [];
+
+  for (const row of rows.slice(1)) {
+    const dateValue = row[headerIndexByName.get("Date") ?? -1] ?? "";
+    const counterParty = (row[headerIndexByName.get("Counter Party") ?? -1] ?? "").trim();
+    const reference = (row[headerIndexByName.get("Reference") ?? -1] ?? "").trim();
+    const type = (row[headerIndexByName.get("Type") ?? -1] ?? "").trim();
+    const amountRaw = (row[headerIndexByName.get("Amount (GBP)") ?? -1] ?? "").trim();
+    const spendingCategory = (row[headerIndexByName.get("Spending Category") ?? -1] ?? "").trim();
+    const notesRaw = (row[headerIndexByName.get("Notes") ?? -1] ?? "").trim();
+
+    const spentAt = parseCsvDate(dateValue);
+    const amount = Number(amountRaw.replace(/,/g, ""));
+
+    if (!spentAt || !Number.isFinite(amount) || amount === 0) {
+      continue;
+    }
+
+    const title = counterParty || reference || type || "Imported transaction";
+    const noteParts = [
+      reference && reference !== title ? `Ref: ${reference}` : "",
+      type ? `Type: ${type}` : "",
+      notesRaw,
+    ].filter((part) => part.length > 0);
+
+    transactions.push({
+      title,
+      notes: noteParts.join(" | "),
+      amount: Math.abs(amount),
+      spentAt,
+      categoryName: normalizeImportedCategoryName(spendingCategory),
+      entryType: amount > 0 ? "income" : "expense",
+    });
+  }
+
+  return transactions;
+}
 
 function ExpenseDashboard() {
   const [username, setUsername] = useState("testuser");
@@ -53,6 +225,7 @@ function ExpenseDashboard() {
   const [expenseStatus, setExpenseStatus] = useState("No transaction data loaded yet.");
   const [isLoadingExpenses, setIsLoadingExpenses] = useState(false);
   const [isSavingBudget, setIsSavingBudget] = useState(false);
+  const [isImportingCsv, setIsImportingCsv] = useState(false);
 
   const [categoryName, setCategoryName] = useState("");
   const [categoryColor, setCategoryColor] = useState("#0ea5e9");
@@ -302,6 +475,87 @@ function ExpenseDashboard() {
     }
   };
 
+  const handleImportTransactionsCsv = async (file: File) => {
+    setIsImportingCsv(true);
+
+    try {
+      const rawCsv = await file.text();
+      const parsedTransactions = parseImportedTransactionsCsv(rawCsv);
+
+      if (parsedTransactions.length === 0) {
+        setExpenseStatus("No valid transactions found in CSV.");
+        return;
+      }
+
+      const categoryByName = new Map<string, ExpenseCategory>(
+        categories.map((category) => [category.name.toLowerCase(), category]),
+      );
+
+      const uniqueImportedCategories = Array.from(
+        new Set(
+          parsedTransactions
+            .map((transaction) => transaction.categoryName)
+            .filter((categoryName) => categoryName.length > 0),
+        ),
+      );
+
+      let createdCategoryCount = 0;
+
+      for (const [index, categoryName] of uniqueImportedCategories.entries()) {
+        const key = categoryName.toLowerCase();
+        if (categoryByName.has(key)) {
+          continue;
+        }
+
+        try {
+          const createdCategory = await createExpenseCategory({
+            name: categoryName,
+            color: IMPORT_CATEGORY_COLORS[index % IMPORT_CATEGORY_COLORS.length],
+          });
+          categoryByName.set(key, createdCategory);
+          createdCategoryCount += 1;
+        } catch {
+          // Ignore category creation conflicts so import can continue.
+        }
+      }
+
+      let importedCount = 0;
+      let failedCount = 0;
+
+      for (const transaction of parsedTransactions) {
+        try {
+          const categoryId = transaction.categoryName
+            ? categoryByName.get(transaction.categoryName.toLowerCase())?.id ?? null
+            : null;
+
+          await createExpenseEntry({
+            title: transaction.title,
+            notes: transaction.notes,
+            entry_type: transaction.entryType,
+            amount: transaction.amount.toFixed(2),
+            spent_at: transaction.spentAt,
+            category: categoryId,
+          });
+          importedCount += 1;
+        } catch {
+          failedCount += 1;
+        }
+      }
+
+      setExpenseStatus(
+        `Imported ${importedCount} transaction${importedCount === 1 ? "" : "s"} from CSV${
+          createdCategoryCount > 0 ? ` and created ${createdCategoryCount} categor${createdCategoryCount === 1 ? "y" : "ies"}` : ""
+        }${failedCount > 0 ? ` (${failedCount} failed)` : ""}.`,
+      );
+
+      await loadExpenseData(getCurrentFilters());
+    } catch {
+      setExpenseStatus("Failed to import CSV. Ensure the file matches the expected format.");
+    } finally {
+      setIsImportingCsv(false);
+    }
+  };
+
   return (
     <main className="shell">
       <h1>Expense Tracker MVP</h1>
@@ -408,6 +662,11 @@ function ExpenseDashboard() {
                   onCategoryIdChange={setExpenseCategoryId}
                   onNotesChange={setExpenseNotes}
                   onSubmit={(event) => void handleCreateExpense(event)}
+                />
+
+                <ImportTransactionsForm
+                  isImporting={isImportingCsv}
+                  onImportCsv={(file) => handleImportTransactionsCsv(file)}
                 />
               </section>
             </>
