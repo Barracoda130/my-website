@@ -164,6 +164,22 @@ th {
   font-size: 0.85rem;
 }
 
+.transaction-row-income td {
+  background-color: #f6fff8;
+}
+
+.transaction-row-expense td {
+  background-color: #fff7f7;
+}
+
+.transaction-income {
+  font-weight: 700;
+}
+
+.transaction-expense {
+  font-weight: 700;
+}
+
 .danger {
   background: #b91c1c;
 }

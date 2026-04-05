@@ -132,15 +132,32 @@ function ExpenseEntriesTable({
           </thead>
           <tbody>
             {sortedEntries.map((entry) => (
-              <tr key={entry.id}>
+              <tr
+                key={entry.id}
+                className={
+                  entry.entry_type === "income" ? "transaction-row-income" : "transaction-row-expense"
+                }
+              >
                 <td>{entry.spent_at}</td>
                 <td>
                   <strong>{entry.title}</strong>
                   {entry.notes ? <p className="notes">{entry.notes}</p> : null}
                 </td>
-                <td>{entry.entry_type === "income" ? "Income" : "Expense"}</td>
+                <td
+                  className={
+                    entry.entry_type === "income" ? "transaction-income" : "transaction-expense"
+                  }
+                >
+                  {entry.entry_type === "income" ? "Income" : "Expense"}
+                </td>
                 <td>{entry.category_name || "Uncategorized"}</td>
-                <td>{formatMoney(entry.amount)}</td>
+                <td
+                  className={
+                    entry.entry_type === "income" ? "transaction-income" : "transaction-expense"
+                  }
+                >
+                  {formatMoney(entry.amount)}
+                </td>
                 <td>
                   <button
                     type="button"
