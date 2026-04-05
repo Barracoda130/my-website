@@ -117,8 +117,18 @@ button {
 }
 
 .filter-form {
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   align-items: end;
+}
+
+.filter-field {
+  display: grid;
+  gap: 0.45rem;
+  align-content: start;
+}
+
+.filter-actions {
+  align-self: end;
 }
 
 table {
@@ -137,6 +147,15 @@ td {
 th {
   font-size: 0.85rem;
   color: #475569;
+}
+
+.sort-button {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .notes {

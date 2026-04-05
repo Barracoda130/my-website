@@ -24,10 +24,15 @@ describe("expenseService", () => {
       }),
     );
 
-    await listExpenseEntries({ from: "2026-04-01", to: "2026-04-30", category: 3 });
+    await listExpenseEntries({
+      from: "2026-04-01",
+      to: "2026-04-30",
+      category: 3,
+      entryType: "income",
+    });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8000/api/expenses/entries/?from=2026-04-01&to=2026-04-30&category=3",
+      "http://localhost:8000/api/expenses/entries/?from=2026-04-01&to=2026-04-30&category=3&entry_type=income",
       expect.objectContaining({ credentials: "include" }),
     );
   });

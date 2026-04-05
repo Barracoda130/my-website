@@ -22,6 +22,9 @@ function buildQueryParams(filters: ExpenseEntryFilters): string {
   if (filters.category) {
     params.set("category", String(filters.category));
   }
+  if (filters.entryType) {
+    params.set("entry_type", filters.entryType);
+  }
 
   const query = params.toString();
   return query ? `?${query}` : "";

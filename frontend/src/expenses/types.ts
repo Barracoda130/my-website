@@ -51,4 +51,5 @@ export interface ExpenseEntryFilters {
   from?: string;
   to?: string;
   category?: number;
+  entryType?: EntryType;
 }

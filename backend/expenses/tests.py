@@ -164,6 +164,46 @@ class ExpenseApiTests(APITestCase):
         self.assertEqual(len(list_response.data), 1)
         self.assertEqual(list_response.data[0]["title"], "Power")
 
+    def test_entries_support_filtering_by_entry_type(self):
+        csrf_token = self._authenticate()
+
+        entries = [
+            {"title": "Lunch", "amount": "14.50", "spent_at": "2026-04-01", "entry_type": "expense"},
+            {
+                "title": "Monthly Salary",
+                "amount": "2500.00",
+                "spent_at": "2026-04-05",
+                "entry_type": "income",
+            },
+        ]
+
+        for payload in entries:
+            response = self.client.post(
+                self.entries_url,
+                payload,
+                format="json",
+                HTTP_X_CSRFTOKEN=csrf_token,
+            )
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        expense_response = self.client.get(f"{self.entries_url}?entry_type=expense")
+        income_response = self.client.get(f"{self.entries_url}?entry_type=income")
+
+        self.assertEqual(expense_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(income_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(expense_response.data), 1)
+        self.assertEqual(expense_response.data[0]["entry_type"], "expense")
+        self.assertEqual(len(income_response.data), 1)
+        self.assertEqual(income_response.data[0]["entry_type"], "income")
+
+    def test_entries_reject_invalid_entry_type_filter(self):
+        self._authenticate()
+
+        response = self.client.get(f"{self.entries_url}?entry_type=invalid")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("entry_type", response.data)
+
     def test_summary_returns_aggregated_totals(self):
         csrf_token = self._authenticate()
         food = ExpenseCategory.objects.create(user=self.user, name="Food")

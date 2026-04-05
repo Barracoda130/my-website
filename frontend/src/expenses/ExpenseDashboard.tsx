@@ -57,6 +57,7 @@ function ExpenseDashboard() {
 
   const [filterFrom, setFilterFrom] = useState("");
   const [filterTo, setFilterTo] = useState("");
+  const [filterEntryType, setFilterEntryType] = useState<EntryType | "">("");
   const [filterCategoryId, setFilterCategoryId] = useState("");
 
   const currencyFormatter = new Intl.NumberFormat("en-GB", {
@@ -76,9 +77,12 @@ function ExpenseDashboard() {
     if (filterCategoryId) {
       filters.category = Number(filterCategoryId);
     }
+    if (filterEntryType) {
+      filters.entryType = filterEntryType;
+    }
 
     return filters;
-  }, [filterCategoryId, filterFrom, filterTo]);
+  }, [filterCategoryId, filterEntryType, filterFrom, filterTo]);
 
   const formatMoney = (amount: string): string => {
     const numericAmount = Number(amount);
@@ -230,6 +234,7 @@ function ExpenseDashboard() {
   const handleClearFilters = async () => {
     setFilterFrom("");
     setFilterTo("");
+    setFilterEntryType("");
     setFilterCategoryId("");
     await loadExpenseData({});
   };
@@ -283,10 +288,12 @@ function ExpenseDashboard() {
               <ExpenseFiltersForm
                 filterFrom={filterFrom}
                 filterTo={filterTo}
+                filterEntryType={filterEntryType}
                 filterCategoryId={filterCategoryId}
                 categories={categories}
                 onFilterFromChange={setFilterFrom}
                 onFilterToChange={setFilterTo}
+                onFilterEntryTypeChange={setFilterEntryType}
                 onFilterCategoryChange={setFilterCategoryId}
                 onApplyFilters={(event) => void handleApplyFilters(event)}
                 onClearFilters={() => void handleClearFilters()}

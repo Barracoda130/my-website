@@ -53,6 +53,15 @@ def _parse_iso_date(raw_value: str | None, field_name: str) -> date | None:
 def _filter_entries_for_request(request):
     queryset = ExpenseEntry.objects.filter(user=request.user)
 
+    entry_type = request.query_params.get("entry_type")
+    if entry_type:
+        valid_types = {ExpenseEntry.EntryType.EXPENSE, ExpenseEntry.EntryType.INCOME}
+        if entry_type not in valid_types:
+            raise serializers.ValidationError(
+                {"entry_type": "Entry type must be either 'expense' or 'income'."}
+            )
+        queryset = queryset.filter(entry_type=entry_type)
+
     category_id = request.query_params.get("category")
     if category_id:
         try:
@@ -122,6 +131,7 @@ class ExpenseSummaryView(APIView):
             OpenApiParameter(name="from", type=str, required=False, location=OpenApiParameter.QUERY),
             OpenApiParameter(name="to", type=str, required=False, location=OpenApiParameter.QUERY),
             OpenApiParameter(name="category", type=int, required=False, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name="entry_type", type=str, required=False, location=OpenApiParameter.QUERY),
         ],
         responses={200: ExpenseSummarySerializer},
     )
