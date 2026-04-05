@@ -1,0 +1,63 @@
+# My Website Monorepo
+
+Initial implementation for a split-stack platform:
+- Frontend: React + Vite + TypeScript
+- Backend: Django + Django REST Framework
+- Contract: Backend-generated OpenAPI schema + generated frontend types
+- Auth: Session cookie auth with CSRF protection
+
+## Repository Layout
+
+- `frontend/` React client
+- `backend/` Django API
+- `scripts/` Contract generation scripts
+
+## Backend Setup
+
+1. Create and activate a virtual environment.
+2. Install dependencies:
+   - `pip install -r backend/requirements.txt`
+3. Apply migrations:
+   - `python backend/manage.py migrate`
+4. Run backend server:
+   - `python backend/manage.py runserver`
+
+## Frontend Setup
+
+1. Install dependencies:
+   - `cd frontend`
+   - `npm install`
+2. Start dev server:
+   - `npm run dev`
+
+Set `VITE_API_BASE_URL` (for example in `.env.local`) if backend URL differs from `http://localhost:8000`.
+
+## Auth Endpoints
+
+- `GET /api/auth/csrf/`
+- `POST /api/auth/login/`
+- `POST /api/auth/logout/`
+- `GET /api/auth/me/`
+
+## Contract Generation
+
+From repo root:
+- `./scripts/generate_openapi.ps1`
+- `./scripts/generate_typed_client.ps1`
+
+Outputs:
+- `backend/openapi.yaml`
+- `frontend/src/api/generated/schema.ts`
+
+## Tests
+
+Backend:
+- `python backend/manage.py test`
+
+Frontend:
+- `cd frontend`
+- `npm run test:run`
+
+Build check:
+- `cd frontend`
+- `npm run build`
