@@ -20,13 +20,14 @@ import type {
   ExpenseSummary,
 } from "./types";
 import CreateCategoryForm from "./components/CreateCategoryForm";
+import ExpenseAnalyticsPanel from "./components/ExpenseAnalyticsPanel";
 import CreateExpenseForm from "./components/CreateExpenseForm";
 import ExpenseEntriesTable from "./components/ExpenseEntriesTable";
 import ExpenseFiltersForm from "./components/ExpenseFiltersForm";
 import ExpenseSummaryCards from "./components/ExpenseSummaryCards";
 import SessionPanel from "./components/SessionPanel";
 
-type DashboardTab = "view" | "create";
+type DashboardTab = "view" | "create" | "analytics";
 
 function ExpenseDashboard() {
   const [username, setUsername] = useState("testuser");
@@ -123,6 +124,11 @@ function ExpenseDashboard() {
 
     if (tab === "create") {
       setExpenseStatus("Ready to create a transaction.");
+      return;
+    }
+
+    if (tab === "analytics") {
+      setExpenseStatus("Viewing analytics for visible transactions.");
     }
   };
 
@@ -279,6 +285,15 @@ function ExpenseDashboard() {
             >
               Create Transaction
             </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "analytics"}
+              className={`tab-button ${activeTab === "analytics" ? "active" : ""}`}
+              onClick={() => handleTabChange("analytics")}
+            >
+              Analytics
+            </button>
           </section>
 
           {activeTab === "view" ? (
@@ -307,7 +322,7 @@ function ExpenseDashboard() {
                 onDeleteEntry={(entryId) => void handleDeleteExpense(entryId)}
               />
             </>
-          ) : (
+          ) : activeTab === "create" ? (
             <>
               <p className="status" aria-live="polite">
                 {expenseStatus}
@@ -340,6 +355,8 @@ function ExpenseDashboard() {
                 />
               </section>
             </>
+          ) : (
+            <ExpenseAnalyticsPanel entries={entries} formatMoney={formatMoney} />
           )}
         </>
       ) : (
