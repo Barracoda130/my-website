@@ -2,11 +2,11 @@
 
 ## Next Steps
 
-- [ ] Implement first feature module: expense tracker
-  - [ ] Create a Django app for expense tracking in `backend/`
-  - [ ] Add API endpoints and serializer/model validation
-  - [ ] Build matching frontend screens in `frontend/`
-  - [ ] Add backend, frontend, and auth/permission tests for the feature
+- [x] Implement first feature module: expense tracker
+  - [x] Create a Django app for expense tracking in `backend/`
+  - [x] Add API endpoints and serializer/model validation
+  - [x] Build matching frontend screens in `frontend/`
+  - [x] Add backend, frontend, and auth/permission tests for the feature
 
 - [ ] Add CI quality gates
   - [ ] Run backend test suite

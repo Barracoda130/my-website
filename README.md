@@ -5,6 +5,7 @@ Initial implementation for a split-stack platform:
 - Backend: Django + Django REST Framework
 - Contract: Backend-generated OpenAPI schema + generated frontend types
 - Auth: Session cookie auth with CSRF protection
+- Feature module: Expense tracker (categories, entries, filters, summary)
 
 ## Repository Layout
 
@@ -38,6 +39,19 @@ Set `VITE_API_BASE_URL` (for example in `.env.local`) if backend URL differs fro
 - `POST /api/auth/login/`
 - `POST /api/auth/logout/`
 - `GET /api/auth/me/`
+
+## Expense Endpoints
+
+- `GET, POST /api/expenses/categories/`
+- `GET, PATCH, DELETE /api/expenses/categories/{id}/`
+- `GET, POST /api/expenses/entries/`
+- `GET, PATCH, DELETE /api/expenses/entries/{id}/`
+- `GET /api/expenses/summary/`
+
+Supported query params for list/summary:
+- `from=YYYY-MM-DD`
+- `to=YYYY-MM-DD`
+- `category=<id>`
 
 ## Contract Generation
 

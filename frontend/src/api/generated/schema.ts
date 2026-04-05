@@ -68,6 +68,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/expenses/categories/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_expenses_categories_list"];
+        put?: never;
+        post: operations["api_expenses_categories_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/categories/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_expenses_categories_retrieve"];
+        put: operations["api_expenses_categories_update"];
+        post?: never;
+        delete: operations["api_expenses_categories_destroy"];
+        options?: never;
+        head?: never;
+        patch: operations["api_expenses_categories_partial_update"];
+        trace?: never;
+    };
+    "/api/expenses/entries/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_expenses_entries_list"];
+        put?: never;
+        post: operations["api_expenses_entries_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/expenses/entries/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_expenses_entries_retrieve"];
+        put: operations["api_expenses_entries_update"];
+        post?: never;
+        delete: operations["api_expenses_entries_destroy"];
+        options?: never;
+        head?: never;
+        patch: operations["api_expenses_entries_partial_update"];
+        trace?: never;
+    };
+    "/api/expenses/summary/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["api_expenses_summary_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/schema/": {
         parameters: {
             query?: never;
@@ -94,12 +174,69 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ExpenseCategory: {
+            readonly id: number;
+            name: string;
+            color?: string;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
+        ExpenseCategorySummaryItem: {
+            category_id: number | null;
+            category_name: string;
+            /** Format: decimal */
+            total_amount: string;
+            total_count: number;
+        };
+        ExpenseEntry: {
+            readonly id: number;
+            title: string;
+            notes?: string;
+            /** Format: decimal */
+            amount: string;
+            /** Format: date */
+            spent_at?: string;
+            category?: number | null;
+            readonly category_name: string;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        ExpenseSummary: {
+            /** Format: decimal */
+            total_amount: string;
+            total_count: number;
+            by_category: components["schemas"]["ExpenseCategorySummaryItem"][];
+        };
         Login: {
             username: string;
             password: string;
         };
         Message: {
             detail: string;
+        };
+        PatchedExpenseCategory: {
+            readonly id?: number;
+            name?: string;
+            color?: string;
+            /** Format: date-time */
+            readonly created_at?: string;
+        };
+        PatchedExpenseEntry: {
+            readonly id?: number;
+            title?: string;
+            notes?: string;
+            /** Format: decimal */
+            amount?: string;
+            /** Format: date */
+            spent_at?: string;
+            category?: number | null;
+            readonly category_name?: string;
+            /** Format: date-time */
+            readonly created_at?: string;
+            /** Format: date-time */
+            readonly updated_at?: string;
         };
         User: {
             readonly id: number;
@@ -211,6 +348,307 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["User"];
+                };
+            };
+        };
+    };
+    api_expenses_categories_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseCategory"][];
+                };
+            };
+        };
+    };
+    api_expenses_categories_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpenseCategory"];
+                "application/x-www-form-urlencoded": components["schemas"]["ExpenseCategory"];
+                "multipart/form-data": components["schemas"]["ExpenseCategory"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseCategory"];
+                };
+            };
+        };
+    };
+    api_expenses_categories_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseCategory"];
+                };
+            };
+        };
+    };
+    api_expenses_categories_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpenseCategory"];
+                "application/x-www-form-urlencoded": components["schemas"]["ExpenseCategory"];
+                "multipart/form-data": components["schemas"]["ExpenseCategory"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseCategory"];
+                };
+            };
+        };
+    };
+    api_expenses_categories_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    api_expenses_categories_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedExpenseCategory"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedExpenseCategory"];
+                "multipart/form-data": components["schemas"]["PatchedExpenseCategory"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseCategory"];
+                };
+            };
+        };
+    };
+    api_expenses_entries_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseEntry"][];
+                };
+            };
+        };
+    };
+    api_expenses_entries_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpenseEntry"];
+                "application/x-www-form-urlencoded": components["schemas"]["ExpenseEntry"];
+                "multipart/form-data": components["schemas"]["ExpenseEntry"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseEntry"];
+                };
+            };
+        };
+    };
+    api_expenses_entries_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseEntry"];
+                };
+            };
+        };
+    };
+    api_expenses_entries_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpenseEntry"];
+                "application/x-www-form-urlencoded": components["schemas"]["ExpenseEntry"];
+                "multipart/form-data": components["schemas"]["ExpenseEntry"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseEntry"];
+                };
+            };
+        };
+    };
+    api_expenses_entries_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    api_expenses_entries_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedExpenseEntry"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedExpenseEntry"];
+                "multipart/form-data": components["schemas"]["PatchedExpenseEntry"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseEntry"];
+                };
+            };
+        };
+    };
+    api_expenses_summary_retrieve: {
+        parameters: {
+            query?: {
+                category?: number;
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseSummary"];
                 };
             };
         };
