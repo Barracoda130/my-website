@@ -127,13 +127,16 @@ class ExpenseSummaryView(APIView):
     )
     def get(self, request):
         filtered_entries = _filter_entries_for_request(request)
+        expense_entries = filtered_entries.filter(entry_type=ExpenseEntry.EntryType.EXPENSE)
 
-        overall = filtered_entries.aggregate(
+        overall = expense_entries.aggregate(
             total_amount=Sum("amount"),
             total_count=Count("id"),
         )
 
-        by_category_queryset = filtered_entries.values("category_id", "category__name").annotate(
+        transaction_count = filtered_entries.aggregate(total_count=Count("id"))["total_count"] or 0
+
+        by_category_queryset = expense_entries.values("category_id", "category__name").annotate(
             total_amount=Sum("amount"),
             total_count=Count("id"),
         ).order_by("-total_amount")
@@ -150,7 +153,7 @@ class ExpenseSummaryView(APIView):
 
         data = {
             "total_amount": overall["total_amount"] or Decimal("0.00"),
-            "total_count": overall["total_count"] or 0,
+            "total_count": transaction_count,
             "by_category": by_category,
         }
 

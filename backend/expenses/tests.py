@@ -189,3 +189,37 @@ class ExpenseApiTests(APITestCase):
         self.assertEqual(summary_response.data["total_count"], 3)
         self.assertEqual(Decimal(summary_response.data["total_amount"]), Decimal("92.25"))
         self.assertEqual(summary_response.data["by_category"][0]["category_name"], "Food")
+
+    def test_summary_excludes_income_from_total_spend(self):
+        csrf_token = self._authenticate()
+        salary_category = ExpenseCategory.objects.create(user=self.user, name="Salary")
+
+        entries = [
+            {"title": "Lunch", "amount": "14.50", "spent_at": "2026-04-01", "entry_type": "expense"},
+            {"title": "Taxi", "amount": "22.00", "spent_at": "2026-04-03", "entry_type": "expense"},
+            {
+                "title": "Monthly Salary",
+                "amount": "2500.00",
+                "spent_at": "2026-04-05",
+                "entry_type": "income",
+                "category": salary_category.id,
+            },
+        ]
+
+        for payload in entries:
+            response = self.client.post(
+                self.entries_url,
+                payload,
+                format="json",
+                HTTP_X_CSRFTOKEN=csrf_token,
+            )
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        summary_response = self.client.get(self.summary_url)
+
+        self.assertEqual(summary_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(summary_response.data["total_count"], 3)
+        self.assertEqual(Decimal(summary_response.data["total_amount"]), Decimal("36.50"))
+        self.assertTrue(
+            all(row["category_name"] != "Salary" for row in summary_response.data["by_category"])
+        )

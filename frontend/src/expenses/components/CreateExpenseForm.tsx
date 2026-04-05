@@ -99,7 +99,7 @@ function CreateExpenseForm({
           placeholder="Optional details"
         />
 
-        <button type="submit">Add Expense</button>
+        <button type="submit">Add Transaction</button>
       </form>
     </section>
   );
