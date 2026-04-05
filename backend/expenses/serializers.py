@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import ExpenseCategory, ExpenseEntry
+from .models import ExpenseBudget, ExpenseCategory, ExpenseEntry
 
 
 class ExpenseCategorySerializer(serializers.ModelSerializer):
@@ -51,3 +51,26 @@ class ExpenseSummarySerializer(serializers.Serializer):
     total_amount = serializers.DecimalField(max_digits=14, decimal_places=2)
     total_count = serializers.IntegerField()
     by_category = ExpenseCategorySummaryItemSerializer(many=True)
+
+
+class ExpenseBudgetSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source="category.name", read_only=True)
+
+    class Meta:
+        model = ExpenseBudget
+        fields = [
+            "id",
+            "category",
+            "category_name",
+            "amount",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "category_name", "created_at", "updated_at"]
+
+    def validate_category(self, category):
+        request = self.context.get("request")
+        if request is None or category.user_id != request.user.id:
+            raise serializers.ValidationError("Category does not belong to the current user.")
+
+        return category

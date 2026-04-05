@@ -33,6 +33,15 @@ export interface ExpenseSummary {
   by_category: ExpenseSummaryCategory[];
 }
 
+export interface ExpenseBudget {
+  id: number;
+  category: number;
+  category_name: string;
+  amount: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CreateExpenseCategoryPayload {
   name: string;
   color?: string;
@@ -45,6 +54,15 @@ export interface CreateExpenseEntryPayload {
   amount: string;
   spent_at: string;
   category?: number | null;
+}
+
+export interface CreateExpenseBudgetPayload {
+  category: number;
+  amount: string;
+}
+
+export interface UpdateExpenseBudgetPayload {
+  amount: string;
 }
 
 export interface ExpenseEntryFilters {

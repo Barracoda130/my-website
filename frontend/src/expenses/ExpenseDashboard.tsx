@@ -5,20 +5,26 @@ import LoginForm from "../auth/components/LoginForm";
 import { bootstrapCsrf, getCurrentUser, login, logout } from "../auth/authService";
 import type { AuthUser } from "../auth/types";
 import {
+  createExpenseBudget,
   createExpenseCategory,
   createExpenseEntry,
+  deleteExpenseBudget,
   deleteExpenseEntry,
   getExpenseSummary,
+  listExpenseBudgets,
   listExpenseCategories,
   listExpenseEntries,
+  updateExpenseBudget,
 } from "./expenseService";
 import type {
   EntryType,
+  ExpenseBudget,
   ExpenseCategory,
   ExpenseEntry,
   ExpenseEntryFilters,
   ExpenseSummary,
 } from "./types";
+import BudgetSetupPanel from "./components/BudgetSetupPanel";
 import CreateCategoryForm from "./components/CreateCategoryForm";
 import ExpenseAnalyticsPanel from "./components/ExpenseAnalyticsPanel";
 import CreateExpenseForm from "./components/CreateExpenseForm";
@@ -27,7 +33,7 @@ import ExpenseFiltersForm from "./components/ExpenseFiltersForm";
 import ExpenseSummaryCards from "./components/ExpenseSummaryCards";
 import SessionPanel from "./components/SessionPanel";
 
-type DashboardTab = "view" | "create" | "analytics";
+type DashboardTab = "view" | "create" | "budget" | "analytics";
 
 function ExpenseDashboard() {
   const [username, setUsername] = useState("testuser");
@@ -37,6 +43,7 @@ function ExpenseDashboard() {
   const [activeTab, setActiveTab] = useState<DashboardTab>("view");
 
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
+  const [budgets, setBudgets] = useState<ExpenseBudget[]>([]);
   const [entries, setEntries] = useState<ExpenseEntry[]>([]);
   const [summary, setSummary] = useState<ExpenseSummary>({
     total_amount: "0.00",
@@ -45,6 +52,7 @@ function ExpenseDashboard() {
   });
   const [expenseStatus, setExpenseStatus] = useState("No transaction data loaded yet.");
   const [isLoadingExpenses, setIsLoadingExpenses] = useState(false);
+  const [isSavingBudget, setIsSavingBudget] = useState(false);
 
   const [categoryName, setCategoryName] = useState("");
   const [categoryColor, setCategoryColor] = useState("#0ea5e9");
@@ -98,13 +106,15 @@ function ExpenseDashboard() {
       const activeFilters = filters ?? getCurrentFilters();
       setIsLoadingExpenses(true);
       try {
-        const [nextCategories, nextEntries, nextSummary] = await Promise.all([
+        const [nextCategories, nextBudgets, nextEntries, nextSummary] = await Promise.all([
           listExpenseCategories(),
+          listExpenseBudgets(),
           listExpenseEntries(activeFilters),
           getExpenseSummary(activeFilters),
         ]);
 
         setCategories(nextCategories);
+        setBudgets(nextBudgets);
         setEntries(nextEntries);
         setSummary(nextSummary);
         setExpenseStatus(
@@ -124,6 +134,11 @@ function ExpenseDashboard() {
 
     if (tab === "create") {
       setExpenseStatus("Ready to create a transaction.");
+      return;
+    }
+
+    if (tab === "budget") {
+      setExpenseStatus("Set monthly budgets by category.");
       return;
     }
 
@@ -168,6 +183,7 @@ function ExpenseDashboard() {
       setStatus("Signed out");
       setActiveTab("view");
       setCategories([]);
+      setBudgets([]);
       setEntries([]);
       setSummary({ total_amount: "0.00", total_count: 0, by_category: [] });
       setExpenseStatus("Signed out.");
@@ -255,6 +271,37 @@ function ExpenseDashboard() {
     }
   };
 
+  const handleSaveBudget = async (categoryId: number, amount: string) => {
+    setIsSavingBudget(true);
+    try {
+      const existing = budgets.find((budget) => budget.category === categoryId);
+
+      if (existing) {
+        await updateExpenseBudget(existing.id, { amount });
+        setExpenseStatus("Budget updated.");
+      } else {
+        await createExpenseBudget({ category: categoryId, amount });
+        setExpenseStatus("Budget created.");
+      }
+
+      await loadExpenseData(getCurrentFilters());
+    } catch {
+      setExpenseStatus("Failed to save budget.");
+    } finally {
+      setIsSavingBudget(false);
+    }
+  };
+
+  const handleDeleteBudget = async (budgetId: number) => {
+    try {
+      await deleteExpenseBudget(budgetId);
+      setExpenseStatus("Budget deleted.");
+      await loadExpenseData(getCurrentFilters());
+    } catch {
+      setExpenseStatus("Failed to delete budget.");
+    }
+  };
+
   return (
     <main className="shell">
       <h1>Expense Tracker MVP</h1>
@@ -284,6 +331,15 @@ function ExpenseDashboard() {
               onClick={() => handleTabChange("create")}
             >
               Create Transaction
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "budget"}
+              className={`tab-button ${activeTab === "budget" ? "active" : ""}`}
+              onClick={() => handleTabChange("budget")}
+            >
+              Budget Setup
             </button>
             <button
               type="button"
@@ -355,8 +411,18 @@ function ExpenseDashboard() {
                 />
               </section>
             </>
+          ) : activeTab === "budget" ? (
+            <BudgetSetupPanel
+              categories={categories}
+              budgets={budgets}
+              status={expenseStatus}
+              isSaving={isSavingBudget}
+              formatMoney={formatMoney}
+              onSaveBudget={handleSaveBudget}
+              onDeleteBudget={handleDeleteBudget}
+            />
           ) : (
-            <ExpenseAnalyticsPanel entries={entries} />
+            <ExpenseAnalyticsPanel entries={entries} budgets={budgets} />
           )}
         </>
       ) : (

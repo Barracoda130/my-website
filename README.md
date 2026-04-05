@@ -44,6 +44,8 @@ Set `VITE_API_BASE_URL` (for example in `.env.local`) if backend URL differs fro
 
 - `GET, POST /api/expenses/categories/`
 - `GET, PATCH, DELETE /api/expenses/categories/{id}/`
+- `GET, POST /api/expenses/budgets/`
+- `GET, PATCH, DELETE /api/expenses/budgets/{id}/`
 - `GET, POST /api/expenses/entries/`
 - `GET, PATCH, DELETE /api/expenses/entries/{id}/`
 - `GET /api/expenses/summary/`
@@ -62,6 +64,8 @@ Starter categories are created automatically per user the first time categories 
 - Health
 
 Users can still create any additional custom categories from the UI.
+
+Budget setup is available in the frontend under the `Budget Setup` tab.
 
 Seed a second demo account with sample transactions:
 - `python backend/manage.py seed_demo_account`

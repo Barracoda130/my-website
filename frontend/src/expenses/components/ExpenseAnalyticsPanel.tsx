@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 
-import type { ExpenseEntry } from "../types";
+import type { ExpenseBudget, ExpenseEntry } from "../types";
 
 interface ExpenseAnalyticsPanelProps {
   entries: ExpenseEntry[];
+  budgets: ExpenseBudget[];
 }
 
 interface MonthlyTotals {
@@ -30,6 +31,7 @@ interface BudgetRow {
 interface DashboardAnalytics {
   refreshedAt: string;
   visibleMonthCount: number;
+  budgetPeriodMonths: number;
   visibleMonthly: MonthlyTotals[];
   totalIncome: number;
   totalExpense: number;
@@ -94,11 +96,6 @@ function buildConicGradient(slices: CategorySlice[]): string {
   }
 
   return `conic-gradient(${stops.join(",")})`;
-}
-
-function budgetFactorForCategory(categoryName: string): number {
-  const hash = categoryName.split("").reduce((total, character) => total + character.charCodeAt(0), 0);
-  return 0.9 + (hash % 4) * 0.1;
 }
 
 function GaugeCard({ title, value, caption, tone }: GaugeCardProps) {
@@ -260,7 +257,7 @@ function monthLabelFromKey(key: string): string {
   return labelDate.toLocaleDateString("en-GB", { month: "short", year: "2-digit" });
 }
 
-function ExpenseAnalyticsPanel({ entries }: ExpenseAnalyticsPanelProps) {
+function ExpenseAnalyticsPanel({ entries, budgets }: ExpenseAnalyticsPanelProps) {
   const [monthWindow, setMonthWindow] = useState<MonthWindow>("all");
 
   const compactMoneyFormatter = useMemo(
@@ -308,6 +305,7 @@ function ExpenseAnalyticsPanel({ entries }: ExpenseAnalyticsPanelProps) {
     const allMonthly = Array.from(allMonthlyMap.values()).sort((a, b) => a.key.localeCompare(b.key));
     const monthsToShow = monthWindow === "all" ? allMonthly.length : Number(monthWindow);
     const visibleMonthly = monthsToShow > 0 ? allMonthly.slice(-monthsToShow) : allMonthly;
+    const budgetPeriodMonths = Math.max(visibleMonthly.length, 1);
     const visibleMonthKeys = new Set(visibleMonthly.map((month) => month.key));
 
     let totalIncome = 0;
@@ -316,6 +314,7 @@ function ExpenseAnalyticsPanel({ entries }: ExpenseAnalyticsPanelProps) {
     let expenseCount = 0;
     const incomeCategoryTotals = new Map<string, number>();
     const expenseCategoryTotals = new Map<string, number>();
+    const expenseCategoryTotalsById = new Map<number, number>();
 
     for (const entry of entries) {
       const amount = Number(entry.amount);
@@ -338,6 +337,13 @@ function ExpenseAnalyticsPanel({ entries }: ExpenseAnalyticsPanelProps) {
         totalExpense += amount;
         expenseCount += 1;
         expenseCategoryTotals.set(categoryName, (expenseCategoryTotals.get(categoryName) || 0) + amount);
+
+        if (entry.category !== null) {
+          expenseCategoryTotalsById.set(
+            entry.category,
+            (expenseCategoryTotalsById.get(entry.category) || 0) + amount,
+          );
+        }
       }
     }
 
@@ -358,17 +364,22 @@ function ExpenseAnalyticsPanel({ entries }: ExpenseAnalyticsPanelProps) {
     const incomeByCategory = toCategorySlices(incomeCategoryTotals, INCOME_COLORS);
     const expenseByCategory = toCategorySlices(expenseCategoryTotals, EXPENSE_COLORS);
 
-    const budgetRows = Array.from(expenseCategoryTotals.entries())
-      .sort((left, right) => right[1] - left[1])
-      .slice(0, 8)
-      .map(([name, actual]) => {
-        const budget = actual * budgetFactorForCategory(name);
+    const budgetRows = budgets
+      .map((budget) => {
+        const numericBudget = Number(budget.amount);
+        if (!Number.isFinite(numericBudget) || numericBudget <= 0) {
+          return null;
+        }
+
         return {
-          name,
-          actual,
-          budget,
+          name: budget.category_name,
+          actual: expenseCategoryTotalsById.get(budget.category) || 0,
+          budget: numericBudget * budgetPeriodMonths,
         };
-      });
+      })
+      .filter((row): row is BudgetRow => row !== null)
+      .sort((left, right) => Math.max(right.actual, right.budget) - Math.max(left.actual, left.budget))
+      .slice(0, 8);
 
     const budgetAxisMax = Math.max(
       1,
@@ -392,6 +403,7 @@ function ExpenseAnalyticsPanel({ entries }: ExpenseAnalyticsPanelProps) {
         minute: "2-digit",
       }),
       visibleMonthCount: visibleMonthly.length,
+      budgetPeriodMonths,
       visibleMonthly,
       totalIncome,
       totalExpense,
@@ -408,7 +420,7 @@ function ExpenseAnalyticsPanel({ entries }: ExpenseAnalyticsPanelProps) {
       expenseTrend,
       cashflowTrend,
     };
-  }, [entries, monthWindow]);
+  }, [budgets, entries, monthWindow]);
 
   const formatCompactMoney = (amount: number): string => compactMoneyFormatter.format(amount);
 
@@ -539,6 +551,10 @@ function ExpenseAnalyticsPanel({ entries }: ExpenseAnalyticsPanelProps) {
           <section className="analytics-bottom-grid">
             <article className="analytics-viz-card analytics-budget-panel">
               <h3>Budget Compliance by Category</h3>
+              <p className="analytics-budget-note">
+                Budget values are scaled for {analytics.budgetPeriodMonths} month
+                {analytics.budgetPeriodMonths === 1 ? "" : "s"}.
+              </p>
               {analytics.budgetRows.length === 0 ? (
                 <p>No expense categories available for budget analysis.</p>
               ) : (
@@ -560,12 +576,31 @@ function ExpenseAnalyticsPanel({ entries }: ExpenseAnalyticsPanelProps) {
                     {analytics.budgetRows.map((row) => {
                       const actualWidth = (row.actual / analytics.budgetAxisMax) * 100;
                       const budgetWidth = (row.budget / analytics.budgetAxisMax) * 100;
+                      const isActualShorterOrEqual = actualWidth <= budgetWidth;
+                      const shorterWidth = isActualShorterOrEqual ? actualWidth : budgetWidth;
+                      const longerWidth = isActualShorterOrEqual ? budgetWidth : actualWidth;
+                      const clampedLongerWidth = Math.max(0, Math.min(100, longerWidth));
+                      const splitPosition = Math.max(0, Math.min(100, shorterWidth));
+                      const normalizedCut = clampedLongerWidth > 0
+                        ? (splitPosition / clampedLongerWidth) * 100
+                        : 0;
+                      const firstColor = isActualShorterOrEqual ? "#f7b640" : "rgba(139, 92, 246, 0.75)";
+                      const secondColor = isActualShorterOrEqual ? "rgba(139, 92, 246, 0.75)" : "#f7b640";
+                      const segmentedStyle = {
+                        "--segment-cut": `${normalizedCut}%`,
+                        "--segment-first": firstColor,
+                        "--segment-second": secondColor,
+                        width: `${clampedLongerWidth}%`,
+                      } as CSSProperties;
+
                       return (
                         <div className="analytics-budget-row" key={`budget-${row.name}`}>
                           <p>{row.name}</p>
                           <div className="analytics-budget-track">
-                            <span className="analytics-budget-bar budget" style={{ width: `${budgetWidth}%` }}></span>
-                            <span className="analytics-budget-bar actual" style={{ width: `${actualWidth}%` }}></span>
+                            <span className="analytics-budget-bar-composite" style={segmentedStyle}></span>
+                            {splitPosition > 0 && splitPosition < clampedLongerWidth ? (
+                              <span className="analytics-budget-divider" style={{ left: `${splitPosition}%` }}></span>
+                            ) : null}
                           </div>
                         </div>
                       );

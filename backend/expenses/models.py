@@ -71,3 +71,38 @@ class ExpenseEntry(models.Model):
 
     def __str__(self) -> str:
         return f"{self.title} ({self.amount})"
+
+
+class ExpenseBudget(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="expense_budgets",
+    )
+    category = models.ForeignKey(
+        ExpenseCategory,
+        on_delete=models.CASCADE,
+        related_name="budgets",
+    )
+    amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["category__name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "category"],
+                name="uniq_expense_budget_per_user_category",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["user", "category"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.category.name}: {self.amount}"

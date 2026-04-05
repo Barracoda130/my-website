@@ -28,6 +28,7 @@ class ExpenseApiTests(APITestCase):
         self.csrf_url = reverse("auth-csrf")
         self.login_url = reverse("auth-login")
         self.categories_url = reverse("expense-category-list")
+        self.budgets_url = reverse("expense-budget-list")
         self.entries_url = reverse("expense-entry-list")
         self.summary_url = reverse("expense-summary")
 
@@ -106,6 +107,59 @@ class ExpenseApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("category", response.data)
+
+    def test_create_and_list_budget(self):
+        csrf_token = self._authenticate()
+        category = ExpenseCategory.objects.create(user=self.user, name="Home")
+
+        create_response = self.client.post(
+            self.budgets_url,
+            {
+                "category": category.id,
+                "amount": "750.00",
+            },
+            format="json",
+            HTTP_X_CSRFTOKEN=csrf_token,
+        )
+
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(create_response.data["category_name"], "Home")
+
+        list_response = self.client.get(self.budgets_url)
+        self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(list_response.data), 1)
+        self.assertEqual(Decimal(list_response.data[0]["amount"]), Decimal("750.00"))
+
+    def test_create_budget_rejects_other_users_category(self):
+        csrf_token = self._authenticate()
+
+        foreign_category = ExpenseCategory.objects.create(
+            user=self.other_user,
+            name="Foreign Budget",
+        )
+
+        response = self.client.post(
+            self.budgets_url,
+            {
+                "category": foreign_category.id,
+                "amount": "100.00",
+            },
+            format="json",
+            HTTP_X_CSRFTOKEN=csrf_token,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("category", response.data)
+
+    def test_budget_detail_is_scoped_to_authenticated_user(self):
+        self._authenticate()
+        category = ExpenseCategory.objects.create(user=self.other_user, name="Other Home")
+        other_budget = self.other_user.expense_budgets.create(category=category, amount="900.00")
+
+        detail_url = reverse("expense-budget-detail", kwargs={"pk": other_budget.id})
+        detail_response = self.client.get(detail_url)
+
+        self.assertEqual(detail_response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_create_income_entry(self):
         csrf_token = self._authenticate()

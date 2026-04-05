@@ -7,8 +7,9 @@ from rest_framework import generics, permissions, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import ExpenseCategory, ExpenseEntry
+from .models import ExpenseBudget, ExpenseCategory, ExpenseEntry
 from .serializers import (
+    ExpenseBudgetSerializer,
     ExpenseCategorySerializer,
     ExpenseEntrySerializer,
     ExpenseSummarySerializer,
@@ -121,6 +122,28 @@ class ExpenseEntryDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):  # type: ignore[override]
         return ExpenseEntry.objects.filter(user=self.request.user).select_related("category")
+
+
+class ExpenseBudgetListCreateView(generics.ListCreateAPIView):
+    serializer_class = ExpenseBudgetSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = ExpenseBudget.objects.none()
+
+    def get_queryset(self):  # type: ignore[override]
+        _ensure_default_categories(self.request.user)
+        return ExpenseBudget.objects.filter(user=self.request.user).select_related("category")
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class ExpenseBudgetDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = ExpenseBudgetSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = ExpenseBudget.objects.none()
+
+    def get_queryset(self):  # type: ignore[override]
+        return ExpenseBudget.objects.filter(user=self.request.user).select_related("category")
 
 
 class ExpenseSummaryView(APIView):

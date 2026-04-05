@@ -1,11 +1,14 @@
 import { apiRequest } from "../api/http";
 import type {
+  CreateExpenseBudgetPayload,
   CreateExpenseCategoryPayload,
   CreateExpenseEntryPayload,
+  ExpenseBudget,
   ExpenseCategory,
   ExpenseEntry,
   ExpenseEntryFilters,
   ExpenseSummary,
+  UpdateExpenseBudgetPayload,
 } from "./types";
 
 const EXPENSE_BASE = "/api/expenses";
@@ -42,6 +45,45 @@ export function createExpenseCategory(
     {
       method: "POST",
       body: JSON.stringify(payload),
+    },
+    true,
+  );
+}
+
+export function listExpenseBudgets(): Promise<ExpenseBudget[]> {
+  return apiRequest<ExpenseBudget[]>(`${EXPENSE_BASE}/budgets/`);
+}
+
+export function createExpenseBudget(payload: CreateExpenseBudgetPayload): Promise<ExpenseBudget> {
+  return apiRequest<ExpenseBudget>(
+    `${EXPENSE_BASE}/budgets/`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+    true,
+  );
+}
+
+export function updateExpenseBudget(
+  id: number,
+  payload: UpdateExpenseBudgetPayload,
+): Promise<ExpenseBudget> {
+  return apiRequest<ExpenseBudget>(
+    `${EXPENSE_BASE}/budgets/${id}/`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+    true,
+  );
+}
+
+export async function deleteExpenseBudget(id: number): Promise<void> {
+  await apiRequest<void>(
+    `${EXPENSE_BASE}/budgets/${id}/`,
+    {
+      method: "DELETE",
     },
     true,
   );

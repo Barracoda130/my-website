@@ -29,7 +29,7 @@
 
 .tab-bar {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.5rem;
   padding: 0.35rem;
   border-radius: 12px;
@@ -182,6 +182,48 @@ th {
 
 .danger {
   background: #b91c1c;
+}
+
+.budget-setup-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.85rem;
+}
+
+.budget-card {
+  background: #ffffff;
+  border: 1px solid #d9e1ea;
+  border-radius: 10px;
+  padding: 0.85rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.budget-card h3 {
+  margin: 0;
+}
+
+.budget-hint {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.budget-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.budget-table th,
+.budget-table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.budget-actions {
+  justify-content: flex-end;
 }
 
 .analytics-panel {
@@ -486,6 +528,12 @@ th {
   color: #64748b;
 }
 
+.analytics-budget-note {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
 .analytics-budget-legend span {
   display: inline-flex;
   align-items: center;
@@ -548,25 +596,29 @@ th {
   height: 13px;
   border-radius: 999px;
   background: #eef2ff;
+  overflow: hidden;
 }
 
-.analytics-budget-bar {
+.analytics-budget-bar-composite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    var(--segment-first) 0 var(--segment-cut),
+    var(--segment-second) var(--segment-cut) 100%
+  );
+}
+
+.analytics-budget-divider {
   position: absolute;
-  left: 0;
-  border-radius: 999px;
-}
-
-.analytics-budget-bar.budget {
-  height: 8px;
-  top: 2.5px;
-  background: #8b5cf6;
-  opacity: 0.75;
-}
-
-.analytics-budget-bar.actual {
-  height: 13px;
   top: 0;
-  background: #f7b640;
+  bottom: 0;
+  width: 2px;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.14);
+  transform: translateX(-1px);
+  pointer-events: none;
 }
 
 .analytics-bottom-grid {

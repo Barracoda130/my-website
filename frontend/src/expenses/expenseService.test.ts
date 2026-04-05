@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createExpenseEntry,
   getExpenseSummary,
+  listExpenseBudgets,
   listExpenseEntries,
 } from "./expenseService";
 
@@ -89,6 +90,21 @@ describe("expenseService", () => {
     await expect(getExpenseSummary({ from: "2026-04-01" })).resolves.toEqual(summary);
     expect(fetchMock).toHaveBeenCalledWith(
       "http://localhost:8000/api/expenses/summary/?from=2026-04-01",
+      expect.objectContaining({ credentials: "include" }),
+    );
+  });
+
+  it("requests budget list endpoint", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await expect(listExpenseBudgets()).resolves.toEqual([]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8000/api/expenses/budgets/",
       expect.objectContaining({ credentials: "include" }),
     );
   });
