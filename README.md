@@ -63,6 +63,13 @@ Starter categories are created automatically per user the first time categories 
 
 Users can still create any additional custom categories from the UI.
 
+Seed a second demo account with sample transactions:
+- `python backend/manage.py seed_demo_account`
+
+Default seeded login:
+- Username: `testuser2`
+- Password: `StrongPassword123!`
+
 ## Contract Generation
 
 From repo root:

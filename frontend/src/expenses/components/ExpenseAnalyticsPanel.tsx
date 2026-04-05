@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import type { ExpenseEntry } from "../types";
 
@@ -28,6 +28,8 @@ function monthLabelFromKey(key: string): string {
 }
 
 function ExpenseAnalyticsPanel({ entries, formatMoney }: ExpenseAnalyticsPanelProps) {
+  const [monthlyTrendType, setMonthlyTrendType] = useState<"income" | "expense">("expense");
+
   const analytics = useMemo(() => {
     let totalIncome = 0;
     let totalExpense = 0;
@@ -73,11 +75,6 @@ function ExpenseAnalyticsPanel({ entries, formatMoney }: ExpenseAnalyticsPanelPr
 
     const monthlyTotals = Array.from(monthMap.values()).sort((a, b) => a.key.localeCompare(b.key));
 
-    const maxMonthlyValue = monthlyTotals.reduce((maxValue, month) => {
-      const monthPeak = Math.max(month.income, month.expense);
-      return Math.max(maxValue, monthPeak);
-    }, 0);
-
     const maxComparisonValue = Math.max(totalIncome, totalExpense, 1);
 
     return {
@@ -88,13 +85,33 @@ function ExpenseAnalyticsPanel({ entries, formatMoney }: ExpenseAnalyticsPanelPr
       expenseCount,
       savingsRate,
       monthlyTotals,
-      maxMonthlyValue,
       maxComparisonValue,
     };
   }, [entries]);
 
   const incomeShare = (analytics.totalIncome / analytics.maxComparisonValue) * 100;
   const expenseShare = (analytics.totalExpense / analytics.maxComparisonValue) * 100;
+  const trendScale = useMemo(() => {
+    const values = analytics.monthlyTotals.map((month) =>
+      monthlyTrendType === "income" ? month.income : month.expense,
+    );
+
+    const minValue = values.length > 0 ? Math.min(...values) : 0;
+    const maxValue = values.length > 0 ? Math.max(...values) : 0;
+    const range = maxValue - minValue;
+    const padding = range > 0 ? range * 0.15 : Math.max(maxValue * 0.1, 1);
+
+    const axisMin = Math.max(0, minValue - padding);
+    const axisMax = Math.max(axisMin + 1, maxValue + padding);
+    const axisMid = axisMin + (axisMax - axisMin) / 2;
+
+    return {
+      axisMin,
+      axisMid,
+      axisMax,
+      range: axisMax - axisMin,
+    };
+  }, [analytics.monthlyTotals, monthlyTrendType]);
 
   return (
     <section className="panel analytics-panel">
@@ -146,46 +163,68 @@ function ExpenseAnalyticsPanel({ entries, formatMoney }: ExpenseAnalyticsPanelPr
         </div>
       </section>
 
-      <section className="analytics-graph-block" aria-label="Monthly income and expense chart">
+      <section className="analytics-graph-block" aria-label="Monthly trend chart">
         <h3>Monthly Trend</h3>
+        <div className="analytics-trend-type" role="group" aria-label="Monthly trend type selector">
+          <button
+            type="button"
+            className={`trend-toggle ${monthlyTrendType === "income" ? "active" : ""}`}
+            onClick={() => setMonthlyTrendType("income")}
+          >
+            Income
+          </button>
+          <button
+            type="button"
+            className={`trend-toggle ${monthlyTrendType === "expense" ? "active" : ""}`}
+            onClick={() => setMonthlyTrendType("expense")}
+          >
+            Expense
+          </button>
+        </div>
         {analytics.monthlyTotals.length === 0 ? (
           <p>No transactions available for monthly analytics yet.</p>
         ) : (
           <>
-            <div className="analytics-legend" aria-hidden="true">
-              <span><i className="analytics-swatch income"></i> Income</span>
-              <span><i className="analytics-swatch expense"></i> Expense</span>
-            </div>
-            <div className="analytics-month-chart" role="img" aria-label="Monthly income and expense bars">
-              {analytics.monthlyTotals.map((month) => {
-                const incomeHeight =
-                  analytics.maxMonthlyValue > 0
-                    ? Math.max((month.income / analytics.maxMonthlyValue) * 100, month.income > 0 ? 8 : 0)
-                    : 0;
-                const expenseHeight =
-                  analytics.maxMonthlyValue > 0
-                    ? Math.max((month.expense / analytics.maxMonthlyValue) * 100, month.expense > 0 ? 8 : 0)
-                    : 0;
+            <p className="analytics-axis-caption">Y-axis: Amount (auto-scaled to visible months). X-axis: Month.</p>
+            <div
+              className="analytics-trend-layout"
+              role="img"
+              aria-label={`Monthly ${monthlyTrendType} totals by month`}
+            >
+              <div className="analytics-y-axis" aria-hidden="true">
+                <span>{formatMoney(trendScale.axisMax.toFixed(2))}</span>
+                <span>{formatMoney(trendScale.axisMid.toFixed(2))}</span>
+                <span>{formatMoney(trendScale.axisMin.toFixed(2))}</span>
+              </div>
 
-                return (
-                  <article className="analytics-month-group" key={month.key}>
-                    <div className="analytics-month-bars">
-                      <span
-                        className="analytics-month-bar income"
-                        style={{ height: `${incomeHeight}%` }}
-                        title={`Income ${month.label}: ${formatMoney(month.income.toFixed(2))}`}
-                      ></span>
-                      <span
-                        className="analytics-month-bar expense"
-                        style={{ height: `${expenseHeight}%` }}
-                        title={`Expense ${month.label}: ${formatMoney(month.expense.toFixed(2))}`}
-                      ></span>
-                    </div>
-                    <p className="analytics-month-label">{month.label}</p>
-                  </article>
-                );
-              })}
+              <div className="analytics-month-chart single-series">
+                {analytics.monthlyTotals.map((month) => {
+                  const currentValue = monthlyTrendType === "income" ? month.income : month.expense;
+                  const barHeight =
+                    trendScale.range > 0
+                      ? Math.max(
+                        0,
+                        Math.min(100, ((currentValue - trendScale.axisMin) / trendScale.range) * 100),
+                      )
+                      : 0;
+
+                  return (
+                    <article className="analytics-month-group" key={month.key}>
+                      <div className="analytics-month-bars single-series">
+                        <p className="analytics-month-value">{formatMoney(currentValue.toFixed(2))}</p>
+                        <span
+                          className={`analytics-month-bar ${monthlyTrendType}`}
+                          style={{ height: `${barHeight}%` }}
+                          title={`${monthlyTrendType === "income" ? "Income" : "Expense"} ${month.label}: ${formatMoney(currentValue.toFixed(2))}`}
+                        ></span>
+                      </div>
+                      <p className="analytics-month-label">{month.label}</p>
+                    </article>
+                  );
+                })}
+              </div>
             </div>
+            <p className="analytics-axis-label">Month</p>
           </>
         )}
       </section>
