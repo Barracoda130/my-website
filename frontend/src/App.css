@@ -27,6 +27,28 @@
   gap: 1rem;
 }
 
+.tab-bar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  padding: 0.35rem;
+  border-radius: 12px;
+  background: #e2e8f0;
+}
+
+.tab-button {
+  background: transparent;
+  color: #0f172a;
+  border: 1px solid transparent;
+  font-weight: 600;
+}
+
+.tab-button.active {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

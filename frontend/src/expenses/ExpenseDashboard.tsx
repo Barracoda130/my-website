@@ -25,11 +25,14 @@ import ExpenseFiltersForm from "./components/ExpenseFiltersForm";
 import ExpenseSummaryCards from "./components/ExpenseSummaryCards";
 import SessionPanel from "./components/SessionPanel";
 
+type DashboardTab = "view" | "create";
+
 function ExpenseDashboard() {
   const [username, setUsername] = useState("testuser");
   const [password, setPassword] = useState("StrongPassword123!");
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [status, setStatus] = useState("Initializing...");
+  const [activeTab, setActiveTab] = useState<DashboardTab>("view");
 
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [entries, setEntries] = useState<ExpenseEntry[]>([]);
@@ -129,6 +132,7 @@ function ExpenseDashboard() {
       const user = await login({ username, password });
       setCurrentUser(user);
       setStatus(`Signed in as ${user.username}`);
+      setActiveTab("view");
       await loadExpenseData({});
     } catch {
       setStatus("Login failed. Check credentials.");
@@ -140,6 +144,7 @@ function ExpenseDashboard() {
       await logout();
       setCurrentUser(null);
       setStatus("Signed out");
+      setActiveTab("view");
       setCategories([]);
       setEntries([]);
       setSummary({ total_amount: "0.00", total_count: 0, by_category: [] });
@@ -236,52 +241,83 @@ function ExpenseDashboard() {
         <>
           <SessionPanel user={currentUser} onLogout={() => void handleLogout()} />
 
-          <ExpenseSummaryCards summary={summary} formatMoney={formatMoney} />
-
-          <ExpenseFiltersForm
-            filterFrom={filterFrom}
-            filterTo={filterTo}
-            filterCategoryId={filterCategoryId}
-            categories={categories}
-            onFilterFromChange={setFilterFrom}
-            onFilterToChange={setFilterTo}
-            onFilterCategoryChange={setFilterCategoryId}
-            onApplyFilters={(event) => void handleApplyFilters(event)}
-            onClearFilters={() => void handleClearFilters()}
-          />
-
-          <section className="panel-grid">
-            <CreateCategoryForm
-              categoryName={categoryName}
-              categoryColor={categoryColor}
-              onCategoryNameChange={setCategoryName}
-              onCategoryColorChange={setCategoryColor}
-              onSubmit={(event) => void handleCreateCategory(event)}
-            />
-
-            <CreateExpenseForm
-              title={expenseTitle}
-              amount={expenseAmount}
-              spentAt={expenseDate}
-              notes={expenseNotes}
-              categoryId={expenseCategoryId}
-              categories={categories}
-              onTitleChange={setExpenseTitle}
-              onAmountChange={setExpenseAmount}
-              onSpentAtChange={setExpenseDate}
-              onCategoryIdChange={setExpenseCategoryId}
-              onNotesChange={setExpenseNotes}
-              onSubmit={(event) => void handleCreateExpense(event)}
-            />
+          <section className="tab-bar" role="tablist" aria-label="Expense pages">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "view"}
+              className={`tab-button ${activeTab === "view" ? "active" : ""}`}
+              onClick={() => setActiveTab("view")}
+            >
+              View Expenses
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "create"}
+              className={`tab-button ${activeTab === "create" ? "active" : ""}`}
+              onClick={() => setActiveTab("create")}
+            >
+              Create Expense
+            </button>
           </section>
 
-          <ExpenseEntriesTable
-            entries={entries}
-            isLoading={isLoadingExpenses}
-            status={expenseStatus}
-            formatMoney={formatMoney}
-            onDeleteEntry={(entryId) => void handleDeleteExpense(entryId)}
-          />
+          {activeTab === "view" ? (
+            <>
+              <ExpenseSummaryCards summary={summary} formatMoney={formatMoney} />
+
+              <ExpenseFiltersForm
+                filterFrom={filterFrom}
+                filterTo={filterTo}
+                filterCategoryId={filterCategoryId}
+                categories={categories}
+                onFilterFromChange={setFilterFrom}
+                onFilterToChange={setFilterTo}
+                onFilterCategoryChange={setFilterCategoryId}
+                onApplyFilters={(event) => void handleApplyFilters(event)}
+                onClearFilters={() => void handleClearFilters()}
+              />
+
+              <ExpenseEntriesTable
+                entries={entries}
+                isLoading={isLoadingExpenses}
+                status={expenseStatus}
+                formatMoney={formatMoney}
+                onDeleteEntry={(entryId) => void handleDeleteExpense(entryId)}
+              />
+            </>
+          ) : (
+            <>
+              <p className="status" aria-live="polite">
+                {expenseStatus}
+              </p>
+
+              <section className="panel-grid">
+                <CreateCategoryForm
+                  categoryName={categoryName}
+                  categoryColor={categoryColor}
+                  onCategoryNameChange={setCategoryName}
+                  onCategoryColorChange={setCategoryColor}
+                  onSubmit={(event) => void handleCreateCategory(event)}
+                />
+
+                <CreateExpenseForm
+                  title={expenseTitle}
+                  amount={expenseAmount}
+                  spentAt={expenseDate}
+                  notes={expenseNotes}
+                  categoryId={expenseCategoryId}
+                  categories={categories}
+                  onTitleChange={setExpenseTitle}
+                  onAmountChange={setExpenseAmount}
+                  onSpentAtChange={setExpenseDate}
+                  onCategoryIdChange={setExpenseCategoryId}
+                  onNotesChange={setExpenseNotes}
+                  onSubmit={(event) => void handleCreateExpense(event)}
+                />
+              </section>
+            </>
+          )}
         </>
       ) : (
         <LoginForm
