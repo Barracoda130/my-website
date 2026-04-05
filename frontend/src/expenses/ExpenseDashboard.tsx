@@ -239,6 +239,7 @@ function ExpenseDashboard() {
 
   const [filterFrom, setFilterFrom] = useState("");
   const [filterTo, setFilterTo] = useState("");
+  const [filterSearch, setFilterSearch] = useState("");
   const [filterEntryType, setFilterEntryType] = useState<EntryType | "">("");
   const [filterCategoryId, setFilterCategoryId] = useState("");
 
@@ -262,9 +263,12 @@ function ExpenseDashboard() {
     if (filterEntryType) {
       filters.entryType = filterEntryType;
     }
+    if (filterSearch.trim()) {
+      filters.search = filterSearch.trim();
+    }
 
     return filters;
-  }, [filterCategoryId, filterEntryType, filterFrom, filterTo]);
+  }, [filterCategoryId, filterEntryType, filterFrom, filterSearch, filterTo]);
 
   const formatMoney = (amount: string): string => {
     const numericAmount = Number(amount);
@@ -327,14 +331,30 @@ function ExpenseDashboard() {
         const user = await getCurrentUser();
         setCurrentUser(user);
         setStatus(`Signed in as ${user.username}`);
-        await loadExpenseData({});
       } catch {
         setStatus("Not signed in");
       }
     };
 
     void initialize();
-  }, [loadExpenseData]);
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser) {
+      return;
+    }
+
+    void loadExpenseData(getCurrentFilters());
+  }, [
+    currentUser,
+    filterCategoryId,
+    filterEntryType,
+    filterFrom,
+    filterSearch,
+    filterTo,
+    getCurrentFilters,
+    loadExpenseData,
+  ]);
 
   const handleLogin = async (event: FormEvent) => {
     event.preventDefault();
@@ -343,7 +363,6 @@ function ExpenseDashboard() {
       setCurrentUser(user);
       setStatus(`Signed in as ${user.username}`);
       setActiveTab("view");
-      await loadExpenseData({});
     } catch {
       setStatus("Login failed. Check credentials.");
     }
@@ -355,6 +374,11 @@ function ExpenseDashboard() {
       setCurrentUser(null);
       setStatus("Signed out");
       setActiveTab("view");
+      setFilterFrom("");
+      setFilterTo("");
+      setFilterSearch("");
+      setFilterEntryType("");
+      setFilterCategoryId("");
       setCategories([]);
       setBudgets([]);
       setEntries([]);
@@ -421,17 +445,12 @@ function ExpenseDashboard() {
     }
   };
 
-  const handleApplyFilters = async (event: FormEvent) => {
-    event.preventDefault();
-    await loadExpenseData(getCurrentFilters());
-  };
-
-  const handleClearFilters = async () => {
+  const handleClearFilters = () => {
     setFilterFrom("");
     setFilterTo("");
+    setFilterSearch("");
     setFilterEntryType("");
     setFilterCategoryId("");
-    await loadExpenseData({});
   };
 
   const handleDeleteExpense = async (entryId: number) => {
@@ -613,15 +632,16 @@ function ExpenseDashboard() {
               <ExpenseFiltersForm
                 filterFrom={filterFrom}
                 filterTo={filterTo}
+                filterSearch={filterSearch}
                 filterEntryType={filterEntryType}
                 filterCategoryId={filterCategoryId}
                 categories={categories}
                 onFilterFromChange={setFilterFrom}
                 onFilterToChange={setFilterTo}
+                onFilterSearchChange={setFilterSearch}
                 onFilterEntryTypeChange={setFilterEntryType}
                 onFilterCategoryChange={setFilterCategoryId}
-                onApplyFilters={(event) => void handleApplyFilters(event)}
-                onClearFilters={() => void handleClearFilters()}
+                onClearFilters={handleClearFilters}
               />
 
               <ExpenseEntriesTable

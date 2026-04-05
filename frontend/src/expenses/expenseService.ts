@@ -28,6 +28,9 @@ function buildQueryParams(filters: ExpenseEntryFilters): string {
   if (filters.entryType) {
     params.set("entry_type", filters.entryType);
   }
+  if (filters.search) {
+    params.set("search", filters.search);
+  }
 
   const query = params.toString();
   return query ? `?${query}` : "";

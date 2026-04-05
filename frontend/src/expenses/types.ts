@@ -70,4 +70,5 @@ export interface ExpenseEntryFilters {
   to?: string;
   category?: number;
   entryType?: EntryType;
+  search?: string;
 }

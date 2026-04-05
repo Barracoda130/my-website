@@ -54,6 +54,8 @@ Supported query params for list/summary:
 - `from=YYYY-MM-DD`
 - `to=YYYY-MM-DD`
 - `category=<id>`
+- `entry_type=expense|income`
+- `search=<text>` (matches transaction title and notes)
 
 Starter categories are created automatically per user the first time categories are fetched:
 - Food

@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import generics, permissions, serializers
 from rest_framework.response import Response
@@ -53,6 +53,14 @@ def _parse_iso_date(raw_value: str | None, field_name: str) -> date | None:
 
 def _filter_entries_for_request(request):
     queryset = ExpenseEntry.objects.filter(user=request.user)
+
+    search_query = request.query_params.get("search")
+    if search_query:
+        terms = [term.strip() for term in search_query.split() if term.strip()]
+        for term in terms:
+            queryset = queryset.filter(
+                Q(title__icontains=term) | Q(notes__icontains=term)
+            )
 
     entry_type = request.query_params.get("entry_type")
     if entry_type:
@@ -155,6 +163,7 @@ class ExpenseSummaryView(APIView):
             OpenApiParameter(name="to", type=str, required=False, location=OpenApiParameter.QUERY),
             OpenApiParameter(name="category", type=int, required=False, location=OpenApiParameter.QUERY),
             OpenApiParameter(name="entry_type", type=str, required=False, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name="search", type=str, required=False, location=OpenApiParameter.QUERY),
         ],
         responses={200: ExpenseSummarySerializer},
     )

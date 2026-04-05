@@ -258,6 +258,50 @@ class ExpenseApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("entry_type", response.data)
 
+    def test_entries_support_search_by_title_and_notes(self):
+        csrf_token = self._authenticate()
+
+        entries = [
+            {
+                "title": "Coffee beans",
+                "notes": "Ethiopian roast",
+                "amount": "14.50",
+                "spent_at": "2026-04-01",
+                "entry_type": "expense",
+            },
+            {
+                "title": "Office supplies",
+                "notes": "Notebook and coffee filters",
+                "amount": "22.00",
+                "spent_at": "2026-04-03",
+                "entry_type": "expense",
+            },
+            {
+                "title": "Salary",
+                "notes": "Monthly payment",
+                "amount": "2500.00",
+                "spent_at": "2026-04-05",
+                "entry_type": "income",
+            },
+        ]
+
+        for payload in entries:
+            response = self.client.post(
+                self.entries_url,
+                payload,
+                format="json",
+                HTTP_X_CSRFTOKEN=csrf_token,
+            )
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self.client.get(f"{self.entries_url}?search=coffee")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+        titles = {item["title"] for item in response.data}
+        self.assertIn("Coffee beans", titles)
+        self.assertIn("Office supplies", titles)
+
     def test_summary_returns_aggregated_totals(self):
         csrf_token = self._authenticate()
         food = ExpenseCategory.objects.create(user=self.user, name="Food")

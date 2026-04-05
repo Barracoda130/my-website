@@ -1,39 +1,52 @@
-import type { FormEvent } from "react";
-
 import type { EntryType, ExpenseCategory } from "../types";
 
 interface ExpenseFiltersFormProps {
   filterFrom: string;
   filterTo: string;
+  filterSearch: string;
   filterCategoryId: string;
   filterEntryType: EntryType | "";
   categories: ExpenseCategory[];
   onFilterFromChange: (value: string) => void;
   onFilterToChange: (value: string) => void;
+  onFilterSearchChange: (value: string) => void;
   onFilterCategoryChange: (value: string) => void;
   onFilterEntryTypeChange: (value: EntryType | "") => void;
-  onApplyFilters: (event: FormEvent) => void;
   onClearFilters: () => void;
 }
 
 function ExpenseFiltersForm({
   filterFrom,
   filterTo,
+  filterSearch,
   filterCategoryId,
   filterEntryType,
   categories,
   onFilterFromChange,
   onFilterToChange,
+  onFilterSearchChange,
   onFilterCategoryChange,
   onFilterEntryTypeChange,
-  onApplyFilters,
   onClearFilters,
 }: ExpenseFiltersFormProps) {
   return (
     <section className="panel">
       <h2>Filters</h2>
-      <form className="filter-form" onSubmit={onApplyFilters}>
+      <div className="filter-search-box">
         <div className="filter-field">
+          <label htmlFor="filter-search">Search</label>
+          <input
+            id="filter-search"
+            type="search"
+            value={filterSearch}
+            onChange={(event) => onFilterSearchChange(event.target.value)}
+            placeholder="Search title or notes"
+          />
+        </div>
+      </div>
+
+      <div className="filter-form">
+        <div className="filter-field filter-inline-field">
           <label htmlFor="filter-from">From</label>
           <input
             id="filter-from"
@@ -43,7 +56,7 @@ function ExpenseFiltersForm({
           />
         </div>
 
-        <div className="filter-field">
+        <div className="filter-field filter-inline-field">
           <label htmlFor="filter-to">To</label>
           <input
             id="filter-to"
@@ -53,7 +66,7 @@ function ExpenseFiltersForm({
           />
         </div>
 
-        <div className="filter-field">
+        <div className="filter-field filter-inline-field">
           <label htmlFor="filter-entry-type">Type</label>
           <select
             id="filter-entry-type"
@@ -66,7 +79,7 @@ function ExpenseFiltersForm({
           </select>
         </div>
 
-        <div className="filter-field">
+        <div className="filter-field filter-inline-field">
           <label htmlFor="filter-category">Category</label>
           <select
             id="filter-category"
@@ -83,12 +96,11 @@ function ExpenseFiltersForm({
         </div>
 
         <div className="button-row filter-actions">
-          <button type="submit">Apply Filters</button>
           <button type="button" onClick={onClearFilters}>
             Clear
           </button>
         </div>
-      </form>
+      </div>
     </section>
   );
 }

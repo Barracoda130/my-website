@@ -30,10 +30,11 @@ describe("expenseService", () => {
       to: "2026-04-30",
       category: 3,
       entryType: "income",
+      search: "coffee beans",
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8000/api/expenses/entries/?from=2026-04-01&to=2026-04-30&category=3&entry_type=income",
+      "http://localhost:8000/api/expenses/entries/?from=2026-04-01&to=2026-04-30&category=3&entry_type=income&search=coffee+beans",
       expect.objectContaining({ credentials: "include" }),
     );
   });
