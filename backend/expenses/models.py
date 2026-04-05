@@ -30,6 +30,10 @@ class ExpenseCategory(models.Model):
 
 
 class ExpenseEntry(models.Model):
+    class EntryType(models.TextChoices):
+        EXPENSE = "expense", "Expense"
+        INCOME = "income", "Income"
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -44,6 +48,11 @@ class ExpenseEntry(models.Model):
     )
     title = models.CharField(max_length=120)
     notes = models.TextField(blank=True)
+    entry_type = models.CharField(
+        max_length=10,
+        choices=EntryType.choices,
+        default=EntryType.EXPENSE,
+    )
     amount = models.DecimalField(
         max_digits=12,
         decimal_places=2,

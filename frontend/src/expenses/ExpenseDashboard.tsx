@@ -13,6 +13,7 @@ import {
   listExpenseEntries,
 } from "./expenseService";
 import type {
+  EntryType,
   ExpenseCategory,
   ExpenseEntry,
   ExpenseEntryFilters,
@@ -41,13 +42,14 @@ function ExpenseDashboard() {
     total_count: 0,
     by_category: [],
   });
-  const [expenseStatus, setExpenseStatus] = useState("No expense data loaded yet.");
+  const [expenseStatus, setExpenseStatus] = useState("No transaction data loaded yet.");
   const [isLoadingExpenses, setIsLoadingExpenses] = useState(false);
 
   const [categoryName, setCategoryName] = useState("");
   const [categoryColor, setCategoryColor] = useState("#0ea5e9");
 
   const [expenseTitle, setExpenseTitle] = useState("");
+  const [expenseType, setExpenseType] = useState<EntryType>("expense");
   const [expenseAmount, setExpenseAmount] = useState("");
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().slice(0, 10));
   const [expenseNotes, setExpenseNotes] = useState("");
@@ -100,15 +102,25 @@ function ExpenseDashboard() {
         setCategories(nextCategories);
         setEntries(nextEntries);
         setSummary(nextSummary);
-        setExpenseStatus(`Loaded ${nextEntries.length} expense entries.`);
+        setExpenseStatus(
+          `Loaded ${nextEntries.length} transaction${nextEntries.length === 1 ? "" : "s"}.`,
+        );
       } catch {
-        setExpenseStatus("Failed to load expense data.");
+        setExpenseStatus("Failed to load transaction data.");
       } finally {
         setIsLoadingExpenses(false);
       }
     },
     [getCurrentFilters],
   );
+
+  const handleTabChange = (tab: DashboardTab) => {
+    setActiveTab(tab);
+
+    if (tab === "create") {
+      setExpenseStatus("Ready to create a transaction.");
+    }
+  };
 
   useEffect(() => {
     const initialize = async () => {
@@ -179,7 +191,7 @@ function ExpenseDashboard() {
     event.preventDefault();
 
     if (!expenseTitle.trim()) {
-      setExpenseStatus("Expense title is required.");
+      setExpenseStatus("Transaction title is required.");
       return;
     }
 
@@ -192,19 +204,21 @@ function ExpenseDashboard() {
       await createExpenseEntry({
         title: expenseTitle.trim(),
         notes: expenseNotes,
+        entry_type: expenseType,
         amount: Number(expenseAmount).toFixed(2),
         spent_at: expenseDate,
         category: expenseCategoryId ? Number(expenseCategoryId) : null,
       });
 
       setExpenseTitle("");
+      setExpenseType("expense");
       setExpenseAmount("");
       setExpenseNotes("");
       setExpenseCategoryId("");
-      setExpenseStatus("Expense created.");
+      setExpenseStatus("Transaction created.");
       await loadExpenseData();
     } catch {
-      setExpenseStatus("Failed to create expense.");
+      setExpenseStatus("Failed to create transaction.");
     }
   };
 
@@ -247,18 +261,18 @@ function ExpenseDashboard() {
               role="tab"
               aria-selected={activeTab === "view"}
               className={`tab-button ${activeTab === "view" ? "active" : ""}`}
-              onClick={() => setActiveTab("view")}
+              onClick={() => handleTabChange("view")}
             >
-              View Expenses
+              View Transactions
             </button>
             <button
               type="button"
               role="tab"
               aria-selected={activeTab === "create"}
               className={`tab-button ${activeTab === "create" ? "active" : ""}`}
-              onClick={() => setActiveTab("create")}
+              onClick={() => handleTabChange("create")}
             >
-              Create Expense
+              Create Transaction
             </button>
           </section>
 
@@ -303,12 +317,14 @@ function ExpenseDashboard() {
 
                 <CreateExpenseForm
                   title={expenseTitle}
+                  entryType={expenseType}
                   amount={expenseAmount}
                   spentAt={expenseDate}
                   notes={expenseNotes}
                   categoryId={expenseCategoryId}
                   categories={categories}
                   onTitleChange={setExpenseTitle}
+                  onEntryTypeChange={setExpenseType}
                   onAmountChange={setExpenseAmount}
                   onSpentAtChange={setExpenseDate}
                   onCategoryIdChange={setExpenseCategoryId}

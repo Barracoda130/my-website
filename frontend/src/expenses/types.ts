@@ -1,3 +1,5 @@
+export type EntryType = "expense" | "income";
+
 export interface ExpenseCategory {
   id: number;
   name: string;
@@ -9,6 +11,7 @@ export interface ExpenseEntry {
   id: number;
   title: string;
   notes: string;
+  entry_type: EntryType;
   amount: string;
   spent_at: string;
   category: number | null;
@@ -38,6 +41,7 @@ export interface CreateExpenseCategoryPayload {
 export interface CreateExpenseEntryPayload {
   title: string;
   notes?: string;
+  entry_type?: EntryType;
   amount: string;
   spent_at: string;
   category?: number | null;

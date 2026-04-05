@@ -17,19 +17,20 @@ function ExpenseEntriesTable({
 }: ExpenseEntriesTableProps) {
   return (
     <section className="panel">
-      <h2>Recent Expenses</h2>
+      <h2>Recent Transactions</h2>
       <p className="status" aria-live="polite">
-        {isLoading ? "Loading expense data..." : status}
+        {isLoading ? "Loading transaction data..." : status}
       </p>
 
       {entries.length === 0 ? (
-        <p>No expenses found for the current filter.</p>
+        <p>No transactions found for the current filter.</p>
       ) : (
         <table>
           <thead>
             <tr>
               <th>Date</th>
               <th>Title</th>
+              <th>Type</th>
               <th>Category</th>
               <th>Amount</th>
               <th></th>
@@ -43,6 +44,7 @@ function ExpenseEntriesTable({
                   <strong>{entry.title}</strong>
                   {entry.notes ? <p className="notes">{entry.notes}</p> : null}
                 </td>
+                <td>{entry.entry_type === "income" ? "Income" : "Expense"}</td>
                 <td>{entry.category_name || "Uncategorized"}</td>
                 <td>{formatMoney(entry.amount)}</td>
                 <td>

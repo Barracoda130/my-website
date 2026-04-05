@@ -107,6 +107,24 @@ class ExpenseApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("category", response.data)
 
+    def test_create_income_entry(self):
+        csrf_token = self._authenticate()
+
+        response = self.client.post(
+            self.entries_url,
+            {
+                "title": "Salary",
+                "amount": "2500.00",
+                "spent_at": "2026-04-01",
+                "entry_type": "income",
+            },
+            format="json",
+            HTTP_X_CSRFTOKEN=csrf_token,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["entry_type"], "income")
+
     def test_entry_detail_is_scoped_to_authenticated_user(self):
         self._authenticate()
 

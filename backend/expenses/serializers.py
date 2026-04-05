@@ -19,6 +19,7 @@ class ExpenseEntrySerializer(serializers.ModelSerializer):
             "id",
             "title",
             "notes",
+            "entry_type",
             "amount",
             "spent_at",
             "category",
