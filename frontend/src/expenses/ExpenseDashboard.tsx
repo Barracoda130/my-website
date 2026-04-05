@@ -356,7 +356,7 @@ function ExpenseDashboard() {
               </section>
             </>
           ) : (
-            <ExpenseAnalyticsPanel entries={entries} formatMoney={formatMoney} />
+            <ExpenseAnalyticsPanel entries={entries} />
           )}
         </>
       ) : (
