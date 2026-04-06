@@ -89,3 +89,9 @@ class AuthenticationApiTests(APITestCase):
 		response = self.client.get("/healthz/")
 		self.assertEqual(response.status_code, status.HTTP_200_OK)
 		self.assertEqual(response.json()["status"], "ok")
+
+	def test_readyz_is_public_and_reports_database_state(self):
+		response = self.client.get("/readyz/")
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+		self.assertEqual(response.json()["status"], "ok")
+		self.assertEqual(response.json()["database"], "reachable")

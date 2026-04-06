@@ -18,12 +18,14 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
-from .health import healthz
+from .health import healthz, readyz
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('healthz/', healthz, name='healthz'),
     path('api/healthz/', healthz, name='api-healthz'),
+    path('readyz/', readyz, name='readyz'),
+    path('api/readyz/', readyz, name='api-readyz'),
     path('api/auth/', include('accounts.urls')),
     path('api/expenses/', include('expenses.urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

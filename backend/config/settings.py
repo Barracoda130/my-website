@@ -30,6 +30,18 @@ DEBUG = env_bool("DJANGO_DEBUG", True)
 
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 
+railway_public_domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "").strip()
+if railway_public_domain and railway_public_domain not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(railway_public_domain)
+
+# Railway health checks may hit internal service hostnames.
+if ".railway.internal" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(".railway.internal")
+
+for host in ("localhost", "127.0.0.1"):
+    if host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(host)
+
 
 # Application definition
 
@@ -164,6 +176,7 @@ csrf_origins = env_list(
 CSRF_TRUSTED_ORIGINS = csrf_origins
 
 SECURE_SSL_REDIRECT = env_bool('DJANGO_SECURE_SSL_REDIRECT', False)
+SECURE_REDIRECT_EXEMPT = [r"^healthz/?$", r"^api/healthz/?$", r"^readyz/?$", r"^api/readyz/?$"]
 SECURE_HSTS_SECONDS = int(os.environ.get('DJANGO_SECURE_HSTS_SECONDS', '0'))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool('DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS', False)
 SECURE_HSTS_PRELOAD = env_bool('DJANGO_SECURE_HSTS_PRELOAD', False)
