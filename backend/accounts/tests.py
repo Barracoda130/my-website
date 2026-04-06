@@ -84,3 +84,8 @@ class AuthenticationApiTests(APITestCase):
 
 		me_response = self.client.get(self.me_url)
 		self.assertEqual(me_response.status_code, status.HTTP_403_FORBIDDEN)
+
+	def test_healthz_is_public_and_returns_ok(self):
+		response = self.client.get("/healthz/")
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+		self.assertEqual(response.json()["status"], "ok")

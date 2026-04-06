@@ -85,6 +85,51 @@ class ExpenseApiTests(APITestCase):
         self.assertEqual(second_response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(first_response.data), len(second_response.data))
 
+    def test_category_detail_is_scoped_to_authenticated_user(self):
+        self._authenticate()
+
+        other_category = ExpenseCategory.objects.create(
+            user=self.other_user,
+            name="Other Private Category",
+        )
+
+        detail_url = reverse("expense-category-detail", kwargs={"pk": other_category.id})
+        detail_response = self.client.get(detail_url)
+
+        self.assertEqual(detail_response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_category_update_rejects_other_users_category(self):
+        csrf_token = self._authenticate()
+
+        other_category = ExpenseCategory.objects.create(
+            user=self.other_user,
+            name="Other Hidden Category",
+        )
+
+        detail_url = reverse("expense-category-detail", kwargs={"pk": other_category.id})
+        response = self.client.patch(
+            detail_url,
+            {"name": "Attempted Rename"},
+            format="json",
+            HTTP_X_CSRFTOKEN=csrf_token,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_category_delete_rejects_other_users_category(self):
+        csrf_token = self._authenticate()
+
+        other_category = ExpenseCategory.objects.create(
+            user=self.other_user,
+            name="Other Protected Category",
+        )
+
+        detail_url = reverse("expense-category-detail", kwargs={"pk": other_category.id})
+        response = self.client.delete(detail_url, HTTP_X_CSRFTOKEN=csrf_token)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(ExpenseCategory.objects.filter(id=other_category.id).exists())
+
     def test_create_entry_rejects_other_users_category(self):
         csrf_token = self._authenticate()
 
@@ -161,6 +206,46 @@ class ExpenseApiTests(APITestCase):
 
         self.assertEqual(detail_response.status_code, status.HTTP_404_NOT_FOUND)
 
+    def test_budget_list_excludes_other_users_budgets(self):
+        self._authenticate()
+
+        my_category = ExpenseCategory.objects.create(user=self.user, name="My Budget Category")
+        other_category = ExpenseCategory.objects.create(user=self.other_user, name="Other Budget Category")
+        self.user.expense_budgets.create(category=my_category, amount="250.00")
+        self.other_user.expense_budgets.create(category=other_category, amount="999.00")
+
+        response = self.client.get(self.budgets_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["category_name"], "My Budget Category")
+
+    def test_budget_update_rejects_other_users_budget(self):
+        csrf_token = self._authenticate()
+        category = ExpenseCategory.objects.create(user=self.other_user, name="Other Budget")
+        other_budget = self.other_user.expense_budgets.create(category=category, amount="400.00")
+
+        detail_url = reverse("expense-budget-detail", kwargs={"pk": other_budget.id})
+        response = self.client.patch(
+            detail_url,
+            {"amount": "550.00"},
+            format="json",
+            HTTP_X_CSRFTOKEN=csrf_token,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_budget_delete_rejects_other_users_budget(self):
+        csrf_token = self._authenticate()
+        category = ExpenseCategory.objects.create(user=self.other_user, name="Other Budget")
+        other_budget = self.other_user.expense_budgets.create(category=category, amount="400.00")
+
+        detail_url = reverse("expense-budget-detail", kwargs={"pk": other_budget.id})
+        response = self.client.delete(detail_url, HTTP_X_CSRFTOKEN=csrf_token)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(self.other_user.expense_budgets.filter(id=other_budget.id).exists())
+
     def test_create_income_entry(self):
         csrf_token = self._authenticate()
 
@@ -193,6 +278,64 @@ class ExpenseApiTests(APITestCase):
         detail_response = self.client.get(detail_url)
 
         self.assertEqual(detail_response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_entries_list_excludes_other_users_entries(self):
+        self._authenticate()
+
+        ExpenseEntry.objects.create(
+            user=self.user,
+            title="My entry",
+            amount="40.00",
+            spent_at=date(2026, 4, 1),
+        )
+        ExpenseEntry.objects.create(
+            user=self.other_user,
+            title="Other user private entry",
+            amount="999.00",
+            spent_at=date(2026, 4, 1),
+        )
+
+        response = self.client.get(self.entries_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["title"], "My entry")
+
+    def test_entry_update_rejects_other_users_entry(self):
+        csrf_token = self._authenticate()
+
+        other_entry = ExpenseEntry.objects.create(
+            user=self.other_user,
+            title="Other user entry",
+            amount="50.00",
+            spent_at=date(2026, 4, 1),
+        )
+
+        detail_url = reverse("expense-entry-detail", kwargs={"pk": other_entry.id})
+        response = self.client.patch(
+            detail_url,
+            {"title": "Attempted overwrite"},
+            format="json",
+            HTTP_X_CSRFTOKEN=csrf_token,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_entry_delete_rejects_other_users_entry(self):
+        csrf_token = self._authenticate()
+
+        other_entry = ExpenseEntry.objects.create(
+            user=self.other_user,
+            title="Other user entry",
+            amount="50.00",
+            spent_at=date(2026, 4, 1),
+        )
+
+        detail_url = reverse("expense-entry-detail", kwargs={"pk": other_entry.id})
+        response = self.client.delete(detail_url, HTTP_X_CSRFTOKEN=csrf_token)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(ExpenseEntry.objects.filter(id=other_entry.id).exists())
 
     def test_entries_support_filtering_by_date_range(self):
         csrf_token = self._authenticate()
@@ -361,3 +504,33 @@ class ExpenseApiTests(APITestCase):
         self.assertTrue(
             all(row["category_name"] != "Salary" for row in summary_response.data["by_category"])
         )
+
+    def test_summary_excludes_other_users_entries(self):
+        csrf_token = self._authenticate()
+
+        my_entry = self.client.post(
+            self.entries_url,
+            {
+                "title": "My expense",
+                "amount": "10.00",
+                "spent_at": "2026-04-01",
+                "entry_type": "expense",
+            },
+            format="json",
+            HTTP_X_CSRFTOKEN=csrf_token,
+        )
+        self.assertEqual(my_entry.status_code, status.HTTP_201_CREATED)
+
+        ExpenseEntry.objects.create(
+            user=self.other_user,
+            title="Other hidden expense",
+            amount="999.00",
+            spent_at=date(2026, 4, 1),
+            entry_type=ExpenseEntry.EntryType.EXPENSE,
+        )
+
+        summary_response = self.client.get(self.summary_url)
+
+        self.assertEqual(summary_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(summary_response.data["total_count"], 1)
+        self.assertEqual(Decimal(summary_response.data["total_amount"]), Decimal("10.00"))
