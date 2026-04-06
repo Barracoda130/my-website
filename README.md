@@ -153,6 +153,7 @@ Create two Railway services from this repository:
 1. Backend service:
     - Root directory: `backend`
     - Config file: `backend/railway.toml`
+   - Builder: Dockerfile (`backend/Dockerfile`)
     - Required env vars: all backend production variables listed above
 2. Frontend service:
     - Root directory: `frontend`
