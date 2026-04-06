@@ -90,6 +90,11 @@ class AuthenticationApiTests(APITestCase):
 		self.assertEqual(response.status_code, status.HTTP_200_OK)
 		self.assertEqual(response.json()["status"], "ok")
 
+	def test_healthz_without_trailing_slash_returns_ok(self):
+		response = self.client.get("/healthz")
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+		self.assertEqual(response.json()["status"], "ok")
+
 	def test_readyz_is_public_and_reports_database_state(self):
 		response = self.client.get("/readyz/")
 		self.assertEqual(response.status_code, status.HTTP_200_OK)

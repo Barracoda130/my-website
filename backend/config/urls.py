@@ -22,9 +22,13 @@ from .health import healthz, readyz
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('healthz', healthz, name='healthz-no-slash'),
     path('healthz/', healthz, name='healthz'),
+    path('api/healthz', healthz, name='api-healthz-no-slash'),
     path('api/healthz/', healthz, name='api-healthz'),
+    path('readyz', readyz, name='readyz-no-slash'),
     path('readyz/', readyz, name='readyz'),
+    path('api/readyz', readyz, name='api-readyz-no-slash'),
     path('api/readyz/', readyz, name='api-readyz'),
     path('api/auth/', include('accounts.urls')),
     path('api/expenses/', include('expenses.urls')),
