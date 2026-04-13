@@ -254,6 +254,64 @@ th {
   border-color: #dbe2ea;
 }
 
+.health-panel {
+  gap: 1rem;
+}
+
+.health-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.health-header h1 {
+  margin: 0;
+}
+
+.health-meta {
+  margin: 0.35rem 0 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.health-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.85rem;
+}
+
+.health-card {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.85rem;
+  background: #ffffff;
+}
+
+.health-card h2 {
+  margin: 0 0 0.45rem;
+}
+
+.health-card pre {
+  margin: 0.6rem 0 0;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.5rem;
+  overflow-x: auto;
+}
+
+.health-ok {
+  color: #166534;
+  font-weight: 700;
+}
+
+.health-fail {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
 .analytics-header {
   display: flex;
   justify-content: space-between;
