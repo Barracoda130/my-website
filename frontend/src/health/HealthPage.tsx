@@ -67,7 +67,13 @@ function HealthPage() {
   }, []);
 
   useEffect(() => {
-    void runChecks();
+    const frameId = window.requestAnimationFrame(() => {
+      void runChecks();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
   }, [runChecks]);
 
   const allHealthy = checks.length > 0 && checks.every((check) => check.ok);

@@ -113,6 +113,11 @@ Build check:
 5. Start the app server:
    - `gunicorn config.wsgi:application --chdir backend --bind 0.0.0.0:$PORT`
 
+Admin account bootstrap:
+- The backend startup path runs `python manage.py ensure_admin_account`.
+- Set `ADMIN_USERNAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in backend env variables.
+- The command is idempotent: it creates the admin user if missing, or updates email/password and admin flags if the user already exists.
+
 ### Frontend
 
 1. Configure API base URL for production:

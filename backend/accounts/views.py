@@ -13,6 +13,7 @@ from .serializers import LoginSerializer, MessageSerializer, UserSerializer
 @method_decorator(ensure_csrf_cookie, name="dispatch")
 class CsrfTokenView(APIView):
 	permission_classes = [permissions.AllowAny]
+	throttle_scope = "auth_csrf"
 
 	@extend_schema(
 		responses={status.HTTP_200_OK: MessageSerializer},
@@ -23,6 +24,7 @@ class CsrfTokenView(APIView):
 
 class LoginView(APIView):
 	permission_classes = [permissions.AllowAny]
+	throttle_scope = "auth_login"
 
 	@method_decorator(csrf_protect)
 	@extend_schema(
@@ -53,6 +55,7 @@ class LoginView(APIView):
 
 class LogoutView(APIView):
 	permission_classes = [permissions.IsAuthenticated]
+	throttle_scope = "auth_logout"
 
 	@method_decorator(csrf_protect)
 	@extend_schema(
@@ -66,6 +69,7 @@ class LogoutView(APIView):
 
 class CurrentUserView(APIView):
 	permission_classes = [permissions.IsAuthenticated]
+	throttle_scope = "auth_me"
 
 	@extend_schema(
 		responses={status.HTTP_200_OK: UserSerializer},
