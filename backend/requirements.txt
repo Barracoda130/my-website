@@ -2,6 +2,7 @@ Django==5.1.7
 djangorestframework==3.15.2
 drf-spectacular==0.27.2
 django-cors-headers==4.6.0
+django-axes==7.0.2
 gunicorn==22.0.0
 whitenoise==6.8.2
 dj-database-url==2.3.0

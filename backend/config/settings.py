@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'axes',
     'corsheaders',
     'rest_framework',
     'drf_spectacular',
@@ -66,8 +67,14 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'axes.middleware.AxesMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -154,18 +161,24 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle',
-        'rest_framework.throttling.ScopedRateThrottle',
+        'accounts.throttles.WindowScopedRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': os.environ.get('THROTTLE_ANON_RATE', '120/minute'),
         'user': os.environ.get('THROTTLE_USER_RATE', '240/minute'),
         'auth_csrf': os.environ.get('THROTTLE_AUTH_CSRF_RATE', '120/minute'),
-        'auth_login': os.environ.get('THROTTLE_AUTH_LOGIN_RATE', '10/minute'),
+        'auth_login': os.environ.get('THROTTLE_AUTH_LOGIN_RATE', '10/5minute'),
         'auth_logout': os.environ.get('THROTTLE_AUTH_LOGOUT_RATE', '60/minute'),
         'auth_me': os.environ.get('THROTTLE_AUTH_ME_RATE', '120/minute'),
     },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
+
+AXES_ENABLED = env_bool('AXES_ENABLED', True)
+AXES_FAILURE_LIMIT = int(os.environ.get('AXES_FAILURE_LIMIT', '10'))
+AXES_COOLOFF_TIME = int(os.environ.get('AXES_COOLOFF_TIME', '1'))
+AXES_LOCKOUT_PARAMETERS = ['ip_address', 'username']
+AXES_RESET_ON_SUCCESS = True
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'My Platform API',

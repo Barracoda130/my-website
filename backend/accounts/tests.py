@@ -1,10 +1,12 @@
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.urls import reverse
+from django.test import override_settings
 from unittest.mock import patch
 from rest_framework import status
-from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.test import APIClient, APITestCase
+
+from .throttles import WindowScopedRateThrottle
 
 
 class AuthenticationApiTests(APITestCase):
@@ -106,7 +108,7 @@ class AuthenticationApiTests(APITestCase):
 		self.assertEqual(response.json()["database"], "reachable")
 
 	@patch.dict(
-		ScopedRateThrottle.THROTTLE_RATES,
+		WindowScopedRateThrottle.THROTTLE_RATES,
 		{
 			"auth_login": "2/minute",
 			"auth_csrf": "2/minute",
@@ -143,7 +145,7 @@ class AuthenticationApiTests(APITestCase):
 		self.assertEqual(third.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
 
 	@patch.dict(
-		ScopedRateThrottle.THROTTLE_RATES,
+		WindowScopedRateThrottle.THROTTLE_RATES,
 		{
 			"auth_login": "2/minute",
 			"auth_csrf": "2/minute",
@@ -162,3 +164,46 @@ class AuthenticationApiTests(APITestCase):
 		self.assertEqual(first.status_code, status.HTTP_200_OK)
 		self.assertEqual(second.status_code, status.HTTP_200_OK)
 		self.assertEqual(third.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+	@override_settings(
+		AXES_ENABLED=True,
+		AXES_FAILURE_LIMIT=2,
+		AXES_COOLOFF_TIME=1,
+	)
+	def test_login_locks_out_after_repeated_failures_for_username_and_ip(self):
+		cache.clear()
+		csrf_token = self._get_csrf_token()
+
+		first = self.client.post(
+			self.login_url,
+			{"username": self.username, "password": "wrong-password"},
+			format="json",
+			HTTP_X_CSRFTOKEN=csrf_token,
+			REMOTE_ADDR="10.0.0.8",
+		)
+		second = self.client.post(
+			self.login_url,
+			{"username": self.username, "password": "wrong-password"},
+			format="json",
+			HTTP_X_CSRFTOKEN=csrf_token,
+			REMOTE_ADDR="10.0.0.8",
+		)
+		third = self.client.post(
+			self.login_url,
+			{"username": self.username, "password": "wrong-password"},
+			format="json",
+			HTTP_X_CSRFTOKEN=csrf_token,
+			REMOTE_ADDR="10.0.0.8",
+		)
+		blocked = self.client.post(
+			self.login_url,
+			{"username": self.username, "password": self.password},
+			format="json",
+			HTTP_X_CSRFTOKEN=csrf_token,
+			REMOTE_ADDR="10.0.0.8",
+		)
+
+		self.assertEqual(first.status_code, status.HTTP_400_BAD_REQUEST)
+		self.assertEqual(second.status_code, status.HTTP_400_BAD_REQUEST)
+		self.assertIn(third.status_code, {status.HTTP_400_BAD_REQUEST, status.HTTP_403_FORBIDDEN})
+		self.assertIn(blocked.status_code, {status.HTTP_400_BAD_REQUEST, status.HTTP_403_FORBIDDEN})
