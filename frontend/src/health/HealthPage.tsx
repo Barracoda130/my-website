@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { buildApiUrl } from "../api/http";
+import { buildApiUrl, getCookieValue } from "../api/http";
 
 type CheckState = {
   endpoint: string;
@@ -13,6 +13,14 @@ type CheckState = {
 
 const ENDPOINTS = ["/healthz", "/readyz"] as const;
 
+async function parseResponseBody(response: Response): Promise<unknown> {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    return response.json();
+  }
+  return response.text();
+}
+
 async function runCheck(endpoint: (typeof ENDPOINTS)[number]): Promise<CheckState> {
   const started = performance.now();
   try {
@@ -24,14 +32,7 @@ async function runCheck(endpoint: (typeof ENDPOINTS)[number]): Promise<CheckStat
       },
     });
 
-    const contentType = response.headers.get("content-type") ?? "";
-    let parsedBody: unknown = null;
-
-    if (contentType.includes("application/json")) {
-      parsedBody = await response.json();
-    } else {
-      parsedBody = await response.text();
-    }
+    const parsedBody = await parseResponseBody(response);
 
     return {
       endpoint,
@@ -53,6 +54,61 @@ async function runCheck(endpoint: (typeof ENDPOINTS)[number]): Promise<CheckStat
   }
 }
 
+async function runCorsCsrfCheck(): Promise<CheckState> {
+  const started = performance.now();
+
+  try {
+    const csrfResponse = await fetch(buildApiUrl("/api/auth/csrf/"), {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    const csrfBody = await parseResponseBody(csrfResponse);
+    const csrfToken = getCookieValue("csrftoken");
+
+    const logoutResponse = await fetch(buildApiUrl("/api/auth/logout/"), {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
+      },
+      body: JSON.stringify({}),
+    });
+
+    const logoutBody = await parseResponseBody(logoutResponse);
+    const bodyText = typeof logoutBody === "string" ? logoutBody.toLowerCase() : "";
+    const csrfRejected = bodyText.includes("csrf") || bodyText.includes("forbidden (403)");
+
+    const ok = csrfResponse.ok && !csrfRejected;
+
+    return {
+      endpoint: "/api/auth/csrf + /api/auth/logout (CORS + CSRF)",
+      ok,
+      status: logoutResponse.status,
+      durationMs: Math.round(performance.now() - started),
+      body: {
+        csrf: { status: csrfResponse.status, body: csrfBody },
+        logout: { status: logoutResponse.status, body: logoutBody },
+      },
+      error: ok ? null : "CSRF/CORS flow failed. Check trusted origins and cookie settings.",
+    };
+  } catch (error) {
+    return {
+      endpoint: "/api/auth/csrf + /api/auth/logout (CORS + CSRF)",
+      ok: false,
+      status: null,
+      durationMs: Math.round(performance.now() - started),
+      body: null,
+      error: error instanceof Error ? error.message : "Unknown network error",
+    };
+  }
+}
+
 function HealthPage() {
   const [checks, setChecks] = useState<CheckState[]>([]);
   const [lastCheckedAt, setLastCheckedAt] = useState<string | null>(null);
@@ -60,7 +116,12 @@ function HealthPage() {
 
   const runChecks = useCallback(async () => {
     setIsLoading(true);
-    const results = await Promise.all(ENDPOINTS.map((endpoint) => runCheck(endpoint)));
+    const [basicResults, corsCsrfResult] = await Promise.all([
+      Promise.all(ENDPOINTS.map((endpoint) => runCheck(endpoint))),
+      runCorsCsrfCheck(),
+    ]);
+
+    const results = [...basicResults, corsCsrfResult];
     setChecks(results);
     setLastCheckedAt(new Date().toLocaleTimeString());
     setIsLoading(false);
