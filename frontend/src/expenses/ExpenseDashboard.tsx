@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 
+import { ApiRequestError } from "../api/http";
 import LoginForm from "../auth/components/LoginForm";
 import { bootstrapCsrf, getCurrentUser, login, logout } from "../auth/authService";
 import type { AuthUser } from "../auth/types";
@@ -43,6 +44,13 @@ interface ParsedCsvTransaction {
   spentAt: string;
   categoryName: string;
   entryType: EntryType;
+}
+
+interface LoginErrorData {
+  detail?: string;
+  attempts_left?: number;
+  locked_out?: boolean;
+  lockout_minutes?: number;
 }
 
 const REQUIRED_CSV_HEADERS = [
@@ -363,7 +371,29 @@ function ExpenseDashboard() {
       setCurrentUser(user);
       setStatus(`Signed in as ${user.username}`);
       setActiveTab("view");
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.data && typeof error.data === "object") {
+        const data = error.data as LoginErrorData;
+
+        if (data.locked_out) {
+          const lockoutMinutes = typeof data.lockout_minutes === "number" ? data.lockout_minutes : 60;
+          setStatus(`Too many failed attempts. Your account is locked for ${lockoutMinutes} minute(s).`);
+          return;
+        }
+
+        if (typeof data.attempts_left === "number" && data.attempts_left < 3) {
+          setStatus(
+            `Login failed. ${data.attempts_left} attempt(s) left before temporary lockout.`,
+          );
+          return;
+        }
+
+        if (typeof data.detail === "string" && data.detail.length > 0) {
+          setStatus(data.detail);
+          return;
+        }
+      }
+
       setStatus("Login failed. Check credentials.");
     }
   };

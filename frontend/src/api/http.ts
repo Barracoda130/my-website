@@ -1,5 +1,17 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
+export class ApiRequestError extends Error {
+  status: number;
+  data: unknown;
+
+  constructor(message: string, status: number, data: unknown) {
+    super(message);
+    this.name = "ApiRequestError";
+    this.status = status;
+    this.data = data;
+  }
+}
+
 export function buildApiUrl(path: string): string {
   if (path.startsWith("http")) {
     return path;
@@ -35,8 +47,15 @@ export async function apiRequest<T>(
   });
 
   if (!response.ok) {
+    const contentType = response.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+      const data = (await response.json()) as Record<string, unknown>;
+      const detail = typeof data.detail === "string" ? data.detail : null;
+      throw new ApiRequestError(detail ?? `Request failed with status ${response.status}`, response.status, data);
+    }
+
     const text = await response.text();
-    throw new Error(text || `Request failed with status ${response.status}`);
+    throw new ApiRequestError(text || `Request failed with status ${response.status}`, response.status, null);
   }
 
   if (response.status === 204) {
