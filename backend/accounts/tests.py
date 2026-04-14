@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.core.management import call_command
 from django.urls import reverse
 from django.test import override_settings
 from unittest.mock import patch
@@ -207,3 +208,50 @@ class AuthenticationApiTests(APITestCase):
 		self.assertEqual(second.status_code, status.HTTP_400_BAD_REQUEST)
 		self.assertIn(third.status_code, {status.HTTP_400_BAD_REQUEST, status.HTTP_403_FORBIDDEN})
 		self.assertIn(blocked.status_code, {status.HTTP_400_BAD_REQUEST, status.HTTP_403_FORBIDDEN})
+
+
+class AdminBootstrapCommandTests(APITestCase):
+	def test_ensure_admin_account_creates_superuser_from_env(self):
+		with patch.dict(
+			"os.environ",
+			{
+				"ADMIN_USERNAME": "admin",
+				"ADMIN_EMAIL": "admin@example.com",
+				"ADMIN_PASSWORD": "StrongPassword123!",
+			},
+			clear=False,
+		):
+			call_command("ensure_admin_account")
+
+		user = get_user_model().objects.get(username="admin")
+		self.assertEqual(user.email, "admin@example.com")
+		self.assertTrue(user.is_staff)
+		self.assertTrue(user.is_superuser)
+		self.assertTrue(user.check_password("StrongPassword123!"))
+
+	def test_ensure_admin_account_updates_existing_user(self):
+		user = get_user_model().objects.create_user(
+			username="admin",
+			email="old@example.com",
+			password="OldPassword123!",
+		)
+		user.is_staff = False
+		user.is_superuser = False
+		user.save()
+
+		with patch.dict(
+			"os.environ",
+			{
+				"ADMIN_USERNAME": "admin",
+				"ADMIN_EMAIL": "new@example.com",
+				"ADMIN_PASSWORD": "NewPassword123!",
+			},
+			clear=False,
+		):
+			call_command("ensure_admin_account")
+
+		user.refresh_from_db()
+		self.assertEqual(user.email, "new@example.com")
+		self.assertTrue(user.is_staff)
+		self.assertTrue(user.is_superuser)
+		self.assertTrue(user.check_password("NewPassword123!"))
