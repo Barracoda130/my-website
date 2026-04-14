@@ -2,6 +2,7 @@ from datetime import date
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
@@ -11,6 +12,7 @@ from .models import ExpenseCategory, ExpenseEntry
 
 class ExpenseApiTests(APITestCase):
     def setUp(self):
+        cache.clear()
         self.user_password = "StrongPassword123!"
         self.user = get_user_model().objects.create_user(
             username="expense-user",

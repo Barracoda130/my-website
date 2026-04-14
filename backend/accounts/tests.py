@@ -1,11 +1,15 @@
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.urls import reverse
+from unittest.mock import patch
 from rest_framework import status
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.test import APIClient, APITestCase
 
 
 class AuthenticationApiTests(APITestCase):
 	def setUp(self):
+		cache.clear()
 		self.username = "testuser"
 		self.password = "StrongPassword123!"
 		self.user = get_user_model().objects.create_user(
@@ -100,3 +104,61 @@ class AuthenticationApiTests(APITestCase):
 		self.assertEqual(response.status_code, status.HTTP_200_OK)
 		self.assertEqual(response.json()["status"], "ok")
 		self.assertEqual(response.json()["database"], "reachable")
+
+	@patch.dict(
+		ScopedRateThrottle.THROTTLE_RATES,
+		{
+			"auth_login": "2/minute",
+			"auth_csrf": "2/minute",
+			"auth_logout": "2/minute",
+			"auth_me": "2/minute",
+		},
+		clear=False,
+	)
+	def test_login_is_rate_limited(self):
+		cache.clear()
+		csrf_token = self._get_csrf_token()
+
+		first = self.client.post(
+			self.login_url,
+			{"username": self.username, "password": "wrong-password"},
+			format="json",
+			HTTP_X_CSRFTOKEN=csrf_token,
+		)
+		second = self.client.post(
+			self.login_url,
+			{"username": self.username, "password": "wrong-password"},
+			format="json",
+			HTTP_X_CSRFTOKEN=csrf_token,
+		)
+		third = self.client.post(
+			self.login_url,
+			{"username": self.username, "password": "wrong-password"},
+			format="json",
+			HTTP_X_CSRFTOKEN=csrf_token,
+		)
+
+		self.assertEqual(first.status_code, status.HTTP_400_BAD_REQUEST)
+		self.assertEqual(second.status_code, status.HTTP_400_BAD_REQUEST)
+		self.assertEqual(third.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+	@patch.dict(
+		ScopedRateThrottle.THROTTLE_RATES,
+		{
+			"auth_login": "2/minute",
+			"auth_csrf": "2/minute",
+			"auth_logout": "2/minute",
+			"auth_me": "2/minute",
+		},
+		clear=False,
+	)
+	def test_csrf_endpoint_is_rate_limited(self):
+		cache.clear()
+
+		first = self.client.get(self.csrf_url)
+		second = self.client.get(self.csrf_url)
+		third = self.client.get(self.csrf_url)
+
+		self.assertEqual(first.status_code, status.HTTP_200_OK)
+		self.assertEqual(second.status_code, status.HTTP_200_OK)
+		self.assertEqual(third.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
