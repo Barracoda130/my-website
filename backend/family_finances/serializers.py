@@ -21,11 +21,24 @@ class AllowanceEntrySerializer(serializers.ModelSerializer):
             "member_name",
             "amount",
             "received_at",
+            "is_recurring",
+            "recurring_interval",
+            "recurring_end_date",
+            "recurring_payment_count",
+            "recurrence_group_id",
+            "recurrence_sequence",
             "notes",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "member_name", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "member_name",
+            "recurrence_group_id",
+            "recurrence_sequence",
+            "created_at",
+            "updated_at",
+        ]
 
     def validate_member(self, value):
         request = self.context["request"]
@@ -34,6 +47,51 @@ class AllowanceEntrySerializer(serializers.ModelSerializer):
         if value.role != FamilyMember.Role.CHILD:
             raise serializers.ValidationError("Allowances can only be assigned to children.")
         return value
+
+    def validate(self, attrs):
+        is_recurring = bool(attrs.get("is_recurring"))
+        recurring_interval = attrs.get("recurring_interval")
+        recurring_end_date = attrs.get("recurring_end_date")
+        recurring_payment_count = attrs.get("recurring_payment_count")
+        received_at = attrs.get("received_at")
+
+        if is_recurring:
+            if not recurring_interval:
+                raise serializers.ValidationError(
+                    {"recurring_interval": "Recurring interval is required when recurring is enabled."}
+                )
+
+            has_end_date = recurring_end_date is not None
+            has_payment_count = recurring_payment_count is not None
+            if has_end_date == has_payment_count:
+                raise serializers.ValidationError(
+                    {
+                        "non_field_errors": [
+                            "Set either recurring_end_date or recurring_payment_count, but not both."
+                        ]
+                    }
+                )
+
+            if recurring_payment_count is not None and recurring_payment_count < 1:
+                raise serializers.ValidationError(
+                    {"recurring_payment_count": "Recurring payment count must be at least 1."}
+                )
+
+            if recurring_end_date is not None and received_at is not None and recurring_end_date < received_at:
+                raise serializers.ValidationError(
+                    {"recurring_end_date": "Recurring end date must be on or after received_at."}
+                )
+        else:
+            if recurring_interval or recurring_end_date or recurring_payment_count:
+                raise serializers.ValidationError(
+                    {
+                        "non_field_errors": [
+                            "Recurring fields can only be set when is_recurring is true."
+                        ]
+                    }
+                )
+
+        return attrs
 
 
 class SpendEntrySerializer(serializers.ModelSerializer):

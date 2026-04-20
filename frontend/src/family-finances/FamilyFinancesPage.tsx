@@ -17,6 +17,7 @@ import {
   listSpendEntries,
 } from "./familyFinanceService";
 import type {
+  AllowanceRecurringInterval,
   AllowanceEntry,
   CategoryComparison,
   FamilyComparisonSummary,
@@ -74,6 +75,12 @@ function FamilyFinancesPage() {
   const [allowanceAmount, setAllowanceAmount] = useState("");
   const [allowanceDate, setAllowanceDate] = useState(new Date().toISOString().slice(0, 10));
   const [allowanceNotes, setAllowanceNotes] = useState("");
+  const [allowanceIsRecurring, setAllowanceIsRecurring] = useState(false);
+  const [allowanceRecurringInterval, setAllowanceRecurringInterval] =
+    useState<AllowanceRecurringInterval>("weekly");
+  const [allowanceRecurringMode, setAllowanceRecurringMode] = useState<"count" | "endDate">("count");
+  const [allowanceRecurringPaymentCount, setAllowanceRecurringPaymentCount] = useState("4");
+  const [allowanceRecurringEndDate, setAllowanceRecurringEndDate] = useState("");
 
   const [spendMemberId, setSpendMemberId] = useState("");
   const [spendKind, setSpendKind] = useState<FamilySpendKind>("significant_purchase");
@@ -252,15 +259,44 @@ function FamilyFinancesPage() {
       setDataStatus("Please choose a child for allowance entry.");
       return;
     }
+
+    if (allowanceIsRecurring && allowanceRecurringMode === "count" && !allowanceRecurringPaymentCount) {
+      setDataStatus("Please enter the number of recurring payments.");
+      return;
+    }
+
+    if (allowanceIsRecurring && allowanceRecurringMode === "endDate" && !allowanceRecurringEndDate) {
+      setDataStatus("Please enter a recurring end date.");
+      return;
+    }
+
     try {
-      await createAllowanceEntry({
+      const payload = {
         member: Number(allowanceMemberId),
         amount: allowanceAmount,
         received_at: allowanceDate,
         notes: allowanceNotes,
-      });
+      } as Parameters<typeof createAllowanceEntry>[0];
+
+      if (allowanceIsRecurring) {
+        payload.is_recurring = true;
+        payload.recurring_interval = allowanceRecurringInterval;
+        if (allowanceRecurringMode === "count") {
+          payload.recurring_payment_count = Number.parseInt(allowanceRecurringPaymentCount, 10);
+        } else {
+          payload.recurring_end_date = allowanceRecurringEndDate;
+        }
+      }
+
+      await createAllowanceEntry(payload);
+
       setAllowanceAmount("");
       setAllowanceNotes("");
+      setAllowanceIsRecurring(false);
+      setAllowanceRecurringInterval("weekly");
+      setAllowanceRecurringMode("count");
+      setAllowanceRecurringPaymentCount("4");
+      setAllowanceRecurringEndDate("");
       await loadFamilyData();
       setDataStatus("Allowance entry added.");
     } catch {
@@ -516,6 +552,69 @@ function FamilyFinancesPage() {
                     onChange={(event) => setAllowanceNotes(event.target.value)}
                   />
 
+                  <label htmlFor="allowance-recurring">Recurring payment</label>
+                  <input
+                    id="allowance-recurring"
+                    type="checkbox"
+                    checked={allowanceIsRecurring}
+                    onChange={(event) => setAllowanceIsRecurring(event.target.checked)}
+                  />
+
+                  {allowanceIsRecurring && (
+                    <>
+                      <label htmlFor="allowance-recurring-interval">Interval</label>
+                      <select
+                        id="allowance-recurring-interval"
+                        value={allowanceRecurringInterval}
+                        onChange={(event) =>
+                          setAllowanceRecurringInterval(event.target.value as AllowanceRecurringInterval)
+                        }
+                      >
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                      </select>
+
+                      <label htmlFor="allowance-recurring-mode">End condition</label>
+                      <select
+                        id="allowance-recurring-mode"
+                        value={allowanceRecurringMode}
+                        onChange={(event) =>
+                          setAllowanceRecurringMode(event.target.value as "count" | "endDate")
+                        }
+                      >
+                        <option value="count">Number of payments</option>
+                        <option value="endDate">End date</option>
+                      </select>
+
+                      {allowanceRecurringMode === "count" ? (
+                        <>
+                          <label htmlFor="allowance-recurring-count">Number of payments</label>
+                          <input
+                            id="allowance-recurring-count"
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={allowanceRecurringPaymentCount}
+                            onChange={(event) => setAllowanceRecurringPaymentCount(event.target.value)}
+                            required={allowanceIsRecurring && allowanceRecurringMode === "count"}
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <label htmlFor="allowance-recurring-end-date">End date</label>
+                          <input
+                            id="allowance-recurring-end-date"
+                            type="date"
+                            value={allowanceRecurringEndDate}
+                            onChange={(event) => setAllowanceRecurringEndDate(event.target.value)}
+                            required={allowanceIsRecurring && allowanceRecurringMode === "endDate"}
+                          />
+                        </>
+                      )}
+                    </>
+                  )}
+
                   <button type="submit">Save Allowance</button>
                 </form>
               </div>
@@ -528,6 +627,7 @@ function FamilyFinancesPage() {
                       <th>Child</th>
                       <th>Amount</th>
                       <th>Date</th>
+                      <th>Recurring</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -536,6 +636,11 @@ function FamilyFinancesPage() {
                         <td>{entry.member_name}</td>
                         <td>{formatMoney(entry.amount)}</td>
                         <td>{entry.received_at}</td>
+                        <td>
+                          {entry.is_recurring
+                            ? `${entry.recurring_interval} (#${entry.recurrence_sequence})`
+                            : "No"}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

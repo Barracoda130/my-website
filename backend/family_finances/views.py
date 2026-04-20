@@ -1,5 +1,7 @@
 from datetime import date
 from decimal import Decimal
+from calendar import monthrange
+import uuid
 
 from django.conf import settings
 from django.db.models import Q, Sum
@@ -49,6 +51,50 @@ def _filter_allowances(request):
         queryset = queryset.filter(received_at__lte=to_date)
 
     return queryset
+
+
+def _advance_allowance_date(current_date: date, interval: str) -> date:
+    if interval == AllowanceEntry.RecurringInterval.WEEKLY:
+        return current_date.fromordinal(current_date.toordinal() + 7)
+
+    if interval == AllowanceEntry.RecurringInterval.MONTHLY:
+        month = current_date.month + 1
+        year = current_date.year
+        if month > 12:
+            month = 1
+            year += 1
+        day = min(current_date.day, monthrange(year, month)[1])
+        return date(year, month, day)
+
+    if interval == AllowanceEntry.RecurringInterval.YEARLY:
+        year = current_date.year + 1
+        day = min(current_date.day, monthrange(year, current_date.month)[1])
+        return date(year, current_date.month, day)
+
+    raise serializers.ValidationError({"recurring_interval": "Invalid recurring interval."})
+
+
+def _build_allowance_schedule_dates(
+    start_date: date,
+    interval: str,
+    end_date: date | None,
+    payment_count: int | None,
+) -> list[date]:
+    dates: list[date] = []
+    current_date = start_date
+    sequence = 1
+
+    while True:
+        if payment_count is not None and sequence > payment_count:
+            break
+        if end_date is not None and current_date > end_date:
+            break
+
+        dates.append(current_date)
+        current_date = _advance_allowance_date(current_date, interval)
+        sequence += 1
+
+    return dates
 
 
 def _filter_spend(request):
@@ -152,7 +198,46 @@ class AllowanceEntryListCreateView(FamilyFinancesBaseMixin, generics.ListCreateA
         return _filter_allowances(self.request)
 
     def perform_create(self, serializer):
-        serializer.save(household=self.request.household, created_by=self.request.user)
+        data = serializer.validated_data
+        is_recurring = bool(data.get("is_recurring"))
+
+        if not is_recurring:
+            serializer.save(
+                household=self.request.household,
+                created_by=self.request.user,
+                recurrence_group_id=uuid.uuid4(),
+                recurrence_sequence=1,
+            )
+            return
+
+        group_id = uuid.uuid4()
+        schedule_dates = _build_allowance_schedule_dates(
+            start_date=data["received_at"],
+            interval=data["recurring_interval"],
+            end_date=data.get("recurring_end_date"),
+            payment_count=data.get("recurring_payment_count"),
+        )
+
+        entries = [
+            AllowanceEntry(
+                household=self.request.household,
+                member=data["member"],
+                amount=data["amount"],
+                received_at=scheduled_date,
+                is_recurring=True,
+                recurring_interval=data["recurring_interval"],
+                recurring_end_date=data.get("recurring_end_date"),
+                recurring_payment_count=data.get("recurring_payment_count"),
+                recurrence_group_id=group_id,
+                recurrence_sequence=index,
+                notes=data.get("notes", ""),
+                created_by=self.request.user,
+            )
+            for index, scheduled_date in enumerate(schedule_dates, start=1)
+        ]
+
+        created_entries = AllowanceEntry.objects.bulk_create(entries)
+        serializer.instance = created_entries[0]
 
 
 class AllowanceEntryDetailView(FamilyFinancesBaseMixin, generics.RetrieveUpdateDestroyAPIView):

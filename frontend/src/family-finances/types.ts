@@ -1,6 +1,7 @@
 export type FamilyMemberRole = "parent" | "child";
 export type FamilySpendKind = "significant_purchase" | "holiday";
 export type FamilySpendPayer = "parent" | "child";
+export type AllowanceRecurringInterval = "weekly" | "monthly" | "yearly";
 
 export interface FamilyMember {
   id: number;
@@ -17,6 +18,12 @@ export interface AllowanceEntry {
   member_name: string;
   amount: string;
   received_at: string;
+  is_recurring: boolean;
+  recurring_interval: AllowanceRecurringInterval | "";
+  recurring_end_date: string | null;
+  recurring_payment_count: number | null;
+  recurrence_group_id: string;
+  recurrence_sequence: number;
   notes: string;
   created_at: string;
   updated_at: string;
@@ -97,6 +104,10 @@ export interface CreateAllowancePayload {
   member: number;
   amount: string;
   received_at: string;
+  is_recurring?: boolean;
+  recurring_interval?: AllowanceRecurringInterval;
+  recurring_end_date?: string;
+  recurring_payment_count?: number;
   notes?: string;
 }
 

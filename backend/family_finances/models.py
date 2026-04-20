@@ -1,4 +1,5 @@
 from decimal import Decimal
+import uuid
 
 from django.conf import settings
 from django.core.validators import MinValueValidator
@@ -52,6 +53,11 @@ class FamilyMember(models.Model):
 
 
 class AllowanceEntry(models.Model):
+    class RecurringInterval(models.TextChoices):
+        WEEKLY = "weekly", "Weekly"
+        MONTHLY = "monthly", "Monthly"
+        YEARLY = "yearly", "Yearly"
+
     household = models.ForeignKey(
         Household,
         on_delete=models.CASCADE,
@@ -68,6 +74,16 @@ class AllowanceEntry(models.Model):
         validators=[MinValueValidator(Decimal("0.01"))],
     )
     received_at = models.DateField()
+    is_recurring = models.BooleanField(default=False)
+    recurring_interval = models.CharField(
+        max_length=10,
+        choices=RecurringInterval.choices,
+        blank=True,
+    )
+    recurring_end_date = models.DateField(null=True, blank=True)
+    recurring_payment_count = models.PositiveIntegerField(null=True, blank=True)
+    recurrence_group_id = models.UUIDField(default=uuid.uuid4, db_index=True)
+    recurrence_sequence = models.PositiveIntegerField(default=1)
     notes = models.TextField(blank=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -82,6 +98,7 @@ class AllowanceEntry(models.Model):
         indexes = [
             models.Index(fields=["member", "received_at"]),
             models.Index(fields=["household", "received_at"]),
+            models.Index(fields=["household", "recurrence_group_id"]),
         ]
 
     def __str__(self) -> str:

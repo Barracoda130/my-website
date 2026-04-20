@@ -144,3 +144,53 @@ class FamilyFinancesApiTests(APITestCase):
 
         response = self.client.get(reverse("family-member-list"))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_recurring_allowance_by_payment_count_creates_multiple_rows(self):
+        child = FamilyMember.objects.create(
+            household=self.household,
+            name="Dani",
+            role=FamilyMember.Role.CHILD,
+        )
+
+        response = self.client.post(
+            reverse("family-allowance-list"),
+            {
+                "member": child.id,
+                "amount": "25.00",
+                "received_at": "2026-04-01",
+                "is_recurring": True,
+                "recurring_interval": "weekly",
+                "recurring_payment_count": 4,
+                "notes": "Weekly allowance",
+            },
+            format="json",
+            HTTP_X_CSRFTOKEN=self.csrf_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        entries = self.client.get(reverse("family-allowance-list"), {"member": child.id})
+        self.assertEqual(entries.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(entries.data), 4)
+
+    def test_recurring_allowance_rejects_both_end_date_and_payment_count(self):
+        child = FamilyMember.objects.create(
+            household=self.household,
+            name="Elliot",
+            role=FamilyMember.Role.CHILD,
+        )
+
+        response = self.client.post(
+            reverse("family-allowance-list"),
+            {
+                "member": child.id,
+                "amount": "30.00",
+                "received_at": "2026-04-01",
+                "is_recurring": True,
+                "recurring_interval": "monthly",
+                "recurring_payment_count": 3,
+                "recurring_end_date": "2026-07-01",
+            },
+            format="json",
+            HTTP_X_CSRFTOKEN=self.csrf_token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
