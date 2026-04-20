@@ -1,4 +1,5 @@
 import ExpenseDashboard from "./expenses/ExpenseDashboard";
+import FamilyFinancesPage from "./family-finances/FamilyFinancesPage";
 import HealthPage from "./health/HealthPage";
 import "./App.css";
 
@@ -7,6 +8,10 @@ function App() {
 
   if (path === "/health") {
     return <HealthPage />;
+  }
+
+  if (path === "/family-finances") {
+    return <FamilyFinancesPage />;
   }
 
   return <ExpenseDashboard />;

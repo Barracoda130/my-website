@@ -32,6 +32,7 @@ urlpatterns = [
     path('api/readyz/', readyz, name='api-readyz'),
     path('api/auth/', include('accounts.urls')),
     path('api/expenses/', include('expenses.urls')),
+    path('api/family-finances/', include('family_finances.urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 ]

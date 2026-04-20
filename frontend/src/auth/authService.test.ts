@@ -45,6 +45,12 @@ describe("authService", () => {
             headers: { "Content-Type": "application/json" },
           },
         ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ detail: "CSRF cookie set.", csrf_token: "token-after-login" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
       );
 
     await bootstrapCsrf();
@@ -55,6 +61,7 @@ describe("authService", () => {
     const headers = options?.headers as Headers;
     expect(headers.get("X-CSRFToken")).toBe("token-from-bootstrap");
     expect(options?.credentials).toBe("include");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it("calls me endpoint for current user", async () => {

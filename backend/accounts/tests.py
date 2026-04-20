@@ -7,6 +7,7 @@ from unittest.mock import patch
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
+from .models import get_user_section_access
 from .throttles import WindowScopedRateThrottle
 
 
@@ -76,6 +77,27 @@ class AuthenticationApiTests(APITestCase):
 
 		self.assertEqual(response.status_code, status.HTTP_200_OK)
 		self.assertEqual(response.data["username"], self.username)
+		self.assertIn("allowed_sections", response.data)
+		self.assertIn("expenses", response.data["allowed_sections"])
+		self.assertIn("family-finances", response.data["allowed_sections"])
+
+	def test_expenses_endpoint_forbidden_when_expenses_access_is_disabled(self):
+		access = get_user_section_access(self.user)
+		access.can_access_expenses = False
+		access.save(update_fields=["can_access_expenses", "updated_at"])
+
+		self._login()
+		response = self.client.get("/api/expenses/summary/")
+		self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+	def test_family_finances_endpoint_forbidden_when_family_access_is_disabled(self):
+		access = get_user_section_access(self.user)
+		access.can_access_family_finances = False
+		access.save(update_fields=["can_access_family_finances", "updated_at"])
+
+		self._login()
+		response = self.client.get("/api/family-finances/")
+		self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 	def test_me_requires_authentication(self):
 		response = self.client.get(self.me_url)

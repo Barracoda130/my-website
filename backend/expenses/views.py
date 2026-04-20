@@ -7,6 +7,7 @@ from rest_framework import generics, permissions, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from accounts.permissions import ExpensesSectionPermission
 from .models import ExpenseBudget, ExpenseCategory, ExpenseEntry
 from .serializers import (
     ExpenseBudgetSerializer,
@@ -91,7 +92,7 @@ def _filter_entries_for_request(request):
 
 class ExpenseCategoryListCreateView(generics.ListCreateAPIView):
     serializer_class = ExpenseCategorySerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, ExpensesSectionPermission]
     queryset = ExpenseCategory.objects.none()
 
     def get_queryset(self):  # type: ignore[override]
@@ -104,7 +105,7 @@ class ExpenseCategoryListCreateView(generics.ListCreateAPIView):
 
 class ExpenseCategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ExpenseCategorySerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, ExpensesSectionPermission]
     queryset = ExpenseCategory.objects.none()
 
     def get_queryset(self):  # type: ignore[override]
@@ -113,7 +114,7 @@ class ExpenseCategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class ExpenseEntryListCreateView(generics.ListCreateAPIView):
     serializer_class = ExpenseEntrySerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, ExpensesSectionPermission]
     queryset = ExpenseEntry.objects.none()
 
     def get_queryset(self):  # type: ignore[override]
@@ -125,7 +126,7 @@ class ExpenseEntryListCreateView(generics.ListCreateAPIView):
 
 class ExpenseEntryDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ExpenseEntrySerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, ExpensesSectionPermission]
     queryset = ExpenseEntry.objects.none()
 
     def get_queryset(self):  # type: ignore[override]
@@ -134,7 +135,7 @@ class ExpenseEntryDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class ExpenseBudgetListCreateView(generics.ListCreateAPIView):
     serializer_class = ExpenseBudgetSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, ExpensesSectionPermission]
     queryset = ExpenseBudget.objects.none()
 
     def get_queryset(self):  # type: ignore[override]
@@ -147,7 +148,7 @@ class ExpenseBudgetListCreateView(generics.ListCreateAPIView):
 
 class ExpenseBudgetDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ExpenseBudgetSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, ExpensesSectionPermission]
     queryset = ExpenseBudget.objects.none()
 
     def get_queryset(self):  # type: ignore[override]
@@ -155,7 +156,7 @@ class ExpenseBudgetDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class ExpenseSummaryView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, ExpensesSectionPermission]
 
     @extend_schema(
         parameters=[

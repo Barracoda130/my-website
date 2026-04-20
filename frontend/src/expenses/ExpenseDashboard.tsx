@@ -71,6 +71,12 @@ const IMPORT_CATEGORY_COLORS = [
   "#ec4899",
 ];
 
+const EXPENSES_SECTION = "expenses";
+
+function canAccessExpenses(user: AuthUser): boolean {
+  return user.allowed_sections.includes(EXPENSES_SECTION);
+}
+
 function parseCsvRows(rawCsv: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
@@ -337,6 +343,10 @@ function ExpenseDashboard() {
       try {
         await bootstrapCsrf();
         const user = await getCurrentUser();
+        if (!canAccessExpenses(user)) {
+          setStatus("Your account is not allowed to access the Expenses section.");
+          return;
+        }
         setCurrentUser(user);
         setStatus(`Signed in as ${user.username}`);
       } catch {
@@ -368,6 +378,10 @@ function ExpenseDashboard() {
     event.preventDefault();
     try {
       const user = await login({ username, password });
+      if (!canAccessExpenses(user)) {
+        setStatus("Your account is not allowed to access the Expenses section.");
+        return;
+      }
       setCurrentUser(user);
       setStatus(`Signed in as ${user.username}`);
       setActiveTab("view");

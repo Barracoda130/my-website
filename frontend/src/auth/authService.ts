@@ -9,7 +9,7 @@ export async function bootstrapCsrf(): Promise<void> {
 }
 
 export async function login(payload: LoginPayload): Promise<AuthUser> {
-  return apiRequest<AuthUser>(
+  const user = await apiRequest<AuthUser>(
     `${AUTH_BASE}/login/`,
     {
       method: "POST",
@@ -17,6 +17,10 @@ export async function login(payload: LoginPayload): Promise<AuthUser> {
     },
     true,
   );
+
+  // Django rotates the CSRF token on successful login.
+  await bootstrapCsrf();
+  return user;
 }
 
 export async function logout(): Promise<void> {

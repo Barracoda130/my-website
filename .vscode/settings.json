@@ -6,5 +6,18 @@
         "npm run build": true,
         "&": true,
         "npx vitest": true
-    }
+    },
+    "terminal.integrated.profiles.windows": {
+        "PowerShell (my-website venv)": {
+            "source": "PowerShell",
+            "args": [
+                "-NoExit",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                "& .\\.venv\\Scripts\\Activate.ps1"
+            ]
+        }
+    },
+    "terminal.integrated.defaultProfile.windows": "PowerShell (my-website venv)"
 }

@@ -6,6 +6,28 @@ from pathlib import Path
 import dj_database_url
 
 
+def load_local_dotenv(dotenv_path: Path) -> None:
+    if not dotenv_path.exists():
+        return
+
+    for raw_line in dotenv_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+
+        if not key:
+            continue
+
+        if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+            value = value[1:-1]
+
+        os.environ.setdefault(key, value)
+
+
 def env_bool(name: str, default: bool = False) -> bool:
     value = os.environ.get(name)
     if value is None:
@@ -19,6 +41,7 @@ def env_list(name: str, default: str = "") -> list[str]:
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_local_dotenv(BASE_DIR / ".env")
 
 
 SECRET_KEY = os.environ.get(
@@ -58,6 +81,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'accounts',
     'expenses',
+    'family_finances',
 ]
 
 MIDDLEWARE = [
@@ -219,6 +243,8 @@ SESSION_COOKIE_SAMESITE = os.environ.get('SESSION_COOKIE_SAMESITE', 'Lax')
 CSRF_COOKIE_SECURE = env_bool('CSRF_COOKIE_SECURE', not DEBUG)
 CSRF_COOKIE_SAMESITE = os.environ.get('CSRF_COOKIE_SAMESITE', 'Lax')
 CSRF_COOKIE_HTTPONLY = False
+
+FAMILY_FINANCES_SIGNIFICANT_THRESHOLD = os.environ.get('FAMILY_FINANCES_SIGNIFICANT_THRESHOLD', '500.00')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
