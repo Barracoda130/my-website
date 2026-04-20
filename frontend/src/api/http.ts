@@ -1,4 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+let csrfTokenOverride: string | null = null;
 
 export class ApiRequestError extends Error {
   status: number;
@@ -25,6 +26,10 @@ export function getCookieValue(name: string): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+export function setCsrfToken(token: string | null): void {
+  csrfTokenOverride = token;
+}
+
 export async function apiRequest<T>(
   path: string,
   init: RequestInit = {},
@@ -34,7 +39,7 @@ export async function apiRequest<T>(
   headers.set("Content-Type", "application/json");
 
   if (includeCsrf) {
-    const csrfToken = getCookieValue("csrftoken");
+    const csrfToken = csrfTokenOverride ?? getCookieValue("csrftoken");
     if (csrfToken) {
       headers.set("X-CSRFToken", csrfToken);
     }

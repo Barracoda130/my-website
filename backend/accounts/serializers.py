@@ -15,3 +15,8 @@ class UserSerializer(serializers.ModelSerializer):
 
 class MessageSerializer(serializers.Serializer):
     detail = serializers.CharField()
+
+
+class CsrfTokenSerializer(serializers.Serializer):
+    detail = serializers.CharField()
+    csrf_token = serializers.CharField()

@@ -49,6 +49,8 @@ class AuthenticationApiTests(APITestCase):
 		response = self.client.get(self.csrf_url)
 		self.assertEqual(response.status_code, status.HTTP_200_OK)
 		self.assertIn("csrftoken", response.cookies)
+		self.assertIn("csrf_token", response.data)
+		self.assertTrue(response.data["csrf_token"])
 
 	def test_login_rejects_request_without_csrf(self):
 		response = self.client.post(

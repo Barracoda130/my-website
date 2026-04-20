@@ -1,10 +1,11 @@
-import { apiRequest } from "../api/http";
+import { apiRequest, setCsrfToken } from "../api/http";
 import type { AuthUser, LoginPayload } from "./types";
 
 const AUTH_BASE = "/api/auth";
 
 export async function bootstrapCsrf(): Promise<void> {
-  await apiRequest<{ detail: string }>(`${AUTH_BASE}/csrf/`);
+  const response = await apiRequest<{ detail: string; csrf_token?: string }>(`${AUTH_BASE}/csrf/`);
+  setCsrfToken(response.csrf_token ?? null);
 }
 
 export async function login(payload: LoginPayload): Promise<AuthUser> {

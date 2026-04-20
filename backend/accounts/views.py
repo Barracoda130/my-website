@@ -1,5 +1,6 @@
 from django.contrib.auth import authenticate, login, logout
 from datetime import timedelta
+from django.middleware.csrf import get_token
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
@@ -13,7 +14,7 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .serializers import LoginSerializer, MessageSerializer, UserSerializer
+from .serializers import CsrfTokenSerializer, LoginSerializer, MessageSerializer, UserSerializer
 
 
 def _cooloff_minutes() -> int:
@@ -58,10 +59,11 @@ class CsrfTokenView(APIView):
 	throttle_scope = "auth_csrf"
 
 	@extend_schema(
-		responses={status.HTTP_200_OK: MessageSerializer},
+		responses={status.HTTP_200_OK: CsrfTokenSerializer},
 	)
 	def get(self, request):
-		return Response({"detail": "CSRF cookie set."})
+		csrf_token = get_token(request)
+		return Response({"detail": "CSRF cookie set.", "csrf_token": csrf_token})
 
 
 class LoginView(APIView):

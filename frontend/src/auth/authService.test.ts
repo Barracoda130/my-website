@@ -14,7 +14,7 @@ describe("authService", () => {
 
   it("bootstraps CSRF cookie endpoint", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ detail: "CSRF cookie set." }), {
+      new Response(JSON.stringify({ detail: "CSRF cookie set.", csrf_token: "test-csrf-token" }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       }),
@@ -29,21 +29,31 @@ describe("authService", () => {
   });
 
   it("sends CSRF header when logging in", async () => {
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(
-        JSON.stringify({ id: 1, username: "testuser", email: "a@b.com", is_staff: false }),
-        {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ detail: "CSRF cookie set.", csrf_token: "token-from-bootstrap" }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
-        },
-      ),
-    );
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ id: 1, username: "testuser", email: "a@b.com", is_staff: false }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
+      );
+
+    await bootstrapCsrf();
 
     await login({ username: "testuser", password: "StrongPassword123!" });
 
-    const [, options] = fetchMock.mock.calls[0];
+    const [, options] = fetchMock.mock.calls[1];
     const headers = options?.headers as Headers;
-    expect(headers.get("X-CSRFToken")).toBe("test-csrf-token");
+    expect(headers.get("X-CSRFToken")).toBe("token-from-bootstrap");
     expect(options?.credentials).toBe("include");
   });
 
