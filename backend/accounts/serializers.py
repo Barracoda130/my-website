@@ -28,3 +28,12 @@ class MessageSerializer(serializers.Serializer):
 class CsrfTokenSerializer(serializers.Serializer):
     detail = serializers.CharField()
     csrf_token = serializers.CharField()
+
+
+class UpdateEmailSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)

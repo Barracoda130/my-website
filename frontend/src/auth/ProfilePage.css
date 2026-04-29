@@ -1,0 +1,223 @@
+.profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.profile-page h1 {
+  margin: 0 0 1rem;
+  font-size: 2rem;
+  color: #0f172a;
+}
+
+.profile-card {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: grid;
+  gap: 2rem;
+}
+
+.profile-section {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.profile-section h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.password-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.password-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.email-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.email-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.toggle-password-btn {
+  background: #e2e8f0;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+
+.toggle-password-btn:hover {
+  background: #cbd5e1;
+  border-color: #94a3b8;
+}
+
+.toggle-password-btn:active {
+  background: #9ca3af;
+}
+
+.toggle-email-btn {
+  background: #e2e8f0;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+
+.toggle-email-btn:hover {
+  background: #cbd5e1;
+  border-color: #94a3b8;
+}
+
+.toggle-email-btn:active {
+  background: #9ca3af;
+}
+
+.info-group {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.info-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.info-value {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #0f172a;
+  padding: 0.6rem;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.info-hint {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.email-display {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #0f172a;
+}
+
+.profile-page form {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.profile-page label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.profile-page input[type="email"],
+.profile-page input[type="password"] {
+  border: 1px solid #9ca3af;
+  border-radius: 6px;
+  padding: 0.65rem;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+
+.profile-page input[type="email"]:focus,
+.profile-page input[type="password"]:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.profile-page button[type="submit"] {
+  background: #3b82f6;
+  color: #ffffff;
+  border: none;
+  padding: 0.65rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: 0.25rem;
+}
+
+.profile-page button[type="submit"]:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.profile-page button[type="submit"]:active:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.profile-page button[type="submit"]:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+}
+
+.profile-page .status {
+  margin: 0;
+  padding: 0.6rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #334155;
+}
+
+.profile-page .status:not(:empty) {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+}
+
+@media (max-width: 640px) {
+  .profile-page h1 {
+    font-size: 1.5rem;
+  }
+
+  .profile-card {
+    padding: 1.25rem;
+    gap: 1.5rem;
+  }
+
+  .password-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .toggle-password-btn {
+    width: 100%;
+  }
+}

@@ -14,7 +14,7 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .serializers import CsrfTokenSerializer, LoginSerializer, MessageSerializer, UserSerializer
+from .serializers import CsrfTokenSerializer, LoginSerializer, MessageSerializer, UserSerializer, UpdateEmailSerializer, ChangePasswordSerializer
 
 
 def _cooloff_minutes() -> int:
@@ -137,3 +137,53 @@ class CurrentUserView(APIView):
 	)
 	def get(self, request):
 		return Response(UserSerializer(request.user).data, status=status.HTTP_200_OK)
+
+	@method_decorator(csrf_protect)
+	@extend_schema(
+		request=UpdateEmailSerializer,
+		responses={
+			status.HTTP_200_OK: UserSerializer,
+			status.HTTP_400_BAD_REQUEST: MessageSerializer,
+		},
+	)
+	def patch(self, request):
+		serializer = UpdateEmailSerializer(data=request.data)
+		serializer.is_valid(raise_exception=True)
+
+		request.user.email = serializer.validated_data["email"]
+		request.user.save()
+
+		return Response(UserSerializer(request.user).data, status=status.HTTP_200_OK)
+
+
+class ChangePasswordView(APIView):
+	permission_classes = [permissions.IsAuthenticated]
+	throttle_scope = "auth_change_password"
+
+	@method_decorator(csrf_protect)
+	@extend_schema(
+		request=ChangePasswordSerializer,
+		responses={
+			status.HTTP_200_OK: MessageSerializer,
+			status.HTTP_400_BAD_REQUEST: MessageSerializer,
+		},
+	)
+	def post(self, request):
+		serializer = ChangePasswordSerializer(data=request.data)
+		serializer.is_valid(raise_exception=True)
+
+		current_password = serializer.validated_data["current_password"]
+		new_password = serializer.validated_data["new_password"]
+
+		# Verify current password is correct
+		if not request.user.check_password(current_password):
+			return Response(
+				{"detail": "Current password is incorrect."},
+				status=status.HTTP_400_BAD_REQUEST,
+			)
+
+		# Set new password
+		request.user.set_password(new_password)
+		request.user.save()
+
+		return Response({"detail": "Password changed successfully."}, status=status.HTTP_200_OK)

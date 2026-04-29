@@ -37,3 +37,29 @@ export async function logout(): Promise<void> {
 export async function getCurrentUser(): Promise<AuthUser> {
   return apiRequest<AuthUser>(`${AUTH_BASE}/me/`);
 }
+
+export async function updateEmail(email: string): Promise<AuthUser> {
+  const user = await apiRequest<AuthUser>(
+    `${AUTH_BASE}/me/`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ email }),
+    },
+    true,
+  );
+  return user;
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<{ detail: string }> {
+  return apiRequest<{ detail: string }>(
+    `${AUTH_BASE}/change-password/`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword,
+      }),
+    },
+    true,
+  );
+}

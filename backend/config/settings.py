@@ -194,6 +194,7 @@ REST_FRAMEWORK = {
         'auth_login': os.environ.get('THROTTLE_AUTH_LOGIN_RATE', '10/5minute'),
         'auth_logout': os.environ.get('THROTTLE_AUTH_LOGOUT_RATE', '60/minute'),
         'auth_me': os.environ.get('THROTTLE_AUTH_ME_RATE', '120/minute'),
+        'auth_change_password': os.environ.get('THROTTLE_AUTH_CHANGE_PASSWORD_RATE', '10/hour'),
     },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
