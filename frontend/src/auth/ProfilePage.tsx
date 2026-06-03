@@ -22,6 +22,8 @@ function ProfilePage({ user: initialUser }: ProfilePageProps) {
   const [passwordStatus, setPasswordStatus] = useState("");
   const [passwordIsSaving, setPasswordIsSaving] = useState(false);
 
+  const [notification, setNotification] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
   useEffect(() => {
     const refreshUser = async () => {
       try {
@@ -35,6 +37,15 @@ function ProfilePage({ user: initialUser }: ProfilePageProps) {
 
     void refreshUser();
   }, []);
+
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   const toggleEmailFields = () => {
     setShowEmailFields(!showEmailFields);
@@ -59,6 +70,7 @@ function ProfilePage({ user: initialUser }: ProfilePageProps) {
       setEmail(updatedUser.email || "");
       setEmailStatus("Email updated successfully.");
       setShowEmailFields(false);
+      setNotification({ message: "Email updated successfully.", type: "success" });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to update email. Please try again.";
       setEmailStatus(errorMessage);
@@ -100,6 +112,7 @@ function ProfilePage({ user: initialUser }: ProfilePageProps) {
       setConfirmPassword("");
       setPasswordStatus("Password changed successfully.");
       setShowPasswordFields(false);
+      setNotification({ message: "Password changed successfully.", type: "success" });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to change password. Please try again.";
       setPasswordStatus(errorMessage);
@@ -120,13 +133,18 @@ function ProfilePage({ user: initialUser }: ProfilePageProps) {
     <main className="shell profile-page">
       <h1>User Profile</h1>
 
+      {notification && (
+        <div className={`notification notification-${notification.type}`}>
+          {notification.message}
+        </div>
+      )}
+
       <article className="profile-card">
         <div className="profile-section">
           <h2>Account Information</h2>
           <div className="info-group">
             <label>Username</label>
             <p className="info-value">{user.username}</p>
-            <small className="info-hint">Username cannot be changed</small>
           </div>
         </div>
 
