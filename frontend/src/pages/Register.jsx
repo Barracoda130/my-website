@@ -27,8 +27,10 @@ export default function Register() {
   // Validate the invite token as soon as the page loads
   useEffect(() => {
     if (!inviteToken) {
-      setInviteValid(false)
-      setInviteError('No invite token found. You need a valid invite link to register.')
+      queueMicrotask(() => {
+        setInviteValid(false)
+        setInviteError('No invite token found. You need a valid invite link to register.')
+      })
       return
     }
 

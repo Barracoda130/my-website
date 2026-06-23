@@ -73,7 +73,7 @@ my-website/
 │   │   ├── serializers.py
 │   │   ├── views.py
 │   │   └── urls.py
-│   ├── budget_tracker/        ← Budget Tracker app (stub)
+│   ├── budget_tracker/        ← Budget Tracker app (MVP implemented)
 │   └── family_finances/       ← Family Finances app (stub)
 └── frontend/
     ├── package.json
@@ -84,7 +84,8 @@ my-website/
         ├── main.jsx           ← React entry point
         ├── api/
         │   ├── client.js      ← Axios instance + interceptors
-        │   └── auth.js        ← Auth API functions
+        │   ├── auth.js        ← Auth API functions
+        │   └── budget.js      ← Budget Tracker API functions
         ├── context/
         │   └── AuthContext.jsx ← Global auth state
         ├── routes/
@@ -96,7 +97,7 @@ my-website/
             ├── Unauthorized.jsx
             ├── NotFound.jsx
             └── modules/
-                ├── BudgetTracker.jsx   ← stub
+                ├── BudgetTracker.jsx   ← Budget Tracker MVP page
                 └── FamilyFinances.jsx  ← stub
 ```
 

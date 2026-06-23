@@ -18,7 +18,7 @@ frontend/          ← React + Vite + Tailwind CSS
 backend/           ← Django project
   config/          ← Django settings, root URLs, WSGI/ASGI
   users/           ← Auth, invite tokens, module access, user groups
-  budget_tracker/  ← Budget Tracker module (stub)
+  budget_tracker/  ← Budget Tracker module (personal budgeting MVP)
   family_finances/ ← Family Finances module (stub)
 ```
 
@@ -41,11 +41,24 @@ backend/           ← Django project
 - Module slugs are defined in `AVAILABLE_MODULES` list in `users/models.py`
 - Adding a new module requires: adding slug to `AVAILABLE_MODULES`, creating Django app, adding frontend route + page
 - `unique_together = ('user', 'module')` prevents duplicate grants
+- `User` is extended via `User.add_to_class('has_module_access', has_module_access)` in `users/models.py`; backend code should call `request.user.has_module_access('<module_slug>')` instead of duplicating `module_access.filter(...).exists()`.
 
 ### User Groups
 - `UserGroup` model: named groups with many-to-many `members`
 - Intended for collaborative modules (e.g. Family Finances — shared data between household members)
 - Groups are fetched via `/api/auth/me/groups/` but not yet used in module logic
+
+### Budget Tracker Domain
+- Budget Tracker is currently personal-user scoped, not group scoped.
+- Core models:
+  - `CategoryGroup` — user-owned grouping for budget categories
+  - `Category` — income/expense categories belonging to a group
+  - `Account` — user-owned money account
+  - `Transaction` — manually entered income/expense/transfer, positive decimal amount plus `type`
+  - `Budget` — monthly amount for an expense category; `month` is first day of the month
+  - `RecurringItem` — lite upcoming bill/subscription/income visibility, no auto-transaction generation yet
+- Backend endpoints use `HasBudgetTrackerAccess`, a custom DRF permission class in `backend/budget_tracker/permissions.py`, to check authentication and `request.user.has_module_access('budget_tracker')`.
+- Querysets are scoped to `request.user`; users must not access other users' budget records by ID.
 
 ## Frontend Patterns
 
@@ -69,6 +82,7 @@ Two components in `routes/ProtectedRoute.jsx`:
   - Request interceptor: attaches `Authorization: Bearer <token>` header
   - Response interceptor: on 401, attempts token refresh then retries; on failure, redirects to `/login`
 - `api/auth.js` — named functions for each auth endpoint (login, register, logout, getMe, getMyModules, getMyGroups, validateInvite)
+- `api/budget.js` — named functions for Budget Tracker endpoints (summary, bootstrap defaults, categories, accounts, transactions, budgets, recurring items)
 
 ### Dashboard Module Cards
 - `MODULE_INFO` map in `Dashboard.jsx` defines display metadata (title, description, icon, route, colours) for each module slug
@@ -87,7 +101,15 @@ Two components in `routes/ProtectedRoute.jsx`:
 /api/auth/me/                  ← Current user data (GET)
 /api/auth/me/modules/          ← User's module access list (GET)
 /api/auth/me/groups/           ← User's groups (GET)
-/api/budget/                   ← Budget Tracker API (stub)
+/api/budget/                   ← Budget Tracker API
+/api/budget/bootstrap-defaults/← Create starter groups/categories/account (POST)
+/api/budget/summary/           ← Monthly budget dashboard summary (GET, `?month=YYYY-MM`)
+/api/budget/category-groups/   ← Category group list/create
+/api/budget/categories/        ← Category list/create
+/api/budget/accounts/          ← Account list/create
+/api/budget/transactions/      ← Transaction list/create (`?month=YYYY-MM` supported)
+/api/budget/budgets/           ← Budget list/create (`?month=YYYY-MM` supported)
+/api/budget/recurring-items/   ← Recurring item list/create
 /api/family/                   ← Family Finances API (stub)
 ```
 

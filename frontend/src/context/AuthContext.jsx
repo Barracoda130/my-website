@@ -29,7 +29,7 @@ export function AuthProvider({ children }) {
         })
         .finally(() => setLoading(false))
     } else {
-      setLoading(false)
+      queueMicrotask(() => setLoading(false))
     }
   }, [])
 
@@ -80,6 +80,7 @@ export function AuthProvider({ children }) {
 
 // Custom hook — use this in any component to access auth state
 // e.g. const { user, login, logout, hasModuleAccess } = useAuth()
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext)
   if (!context) {

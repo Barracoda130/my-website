@@ -48,6 +48,16 @@ AVAILABLE_MODULES = [
 MODULE_CHOICES = AVAILABLE_MODULES
 
 
+def has_module_access(self, module_name):
+    """Return whether this user has been granted access to a module slug."""
+    if not self.is_authenticated:
+        return False
+    return self.module_access.filter(module=module_name).exists()
+
+
+User.add_to_class('has_module_access', has_module_access)
+
+
 class UserModuleAccess(models.Model):
     """Tracks which modules a user has been granted access to."""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='module_access')
