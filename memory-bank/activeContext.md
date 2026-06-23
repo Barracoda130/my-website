@@ -12,6 +12,17 @@ The Budget Tracker foundation MVP has been implemented. The project now has a wo
   - Replaced `BudgetTracker.jsx` stub with a usable MVP page
   - Created and applied `budget_tracker.0001_initial` migration
   - Verified `python manage.py check`, `npm run lint`, and `npm run build`
+- Budget Tracker UX/validation tweaks — 2026-06-23
+  - Transaction descriptions made optional end-to-end
+  - Added `budget_tracker.0002_alter_transaction_description` migration and applied it
+  - Improved button cursor/hover affordances on Dashboard and Budget Tracker pages
+  - Verified backend checks plus frontend lint/build
+- Backend security test suite added — 2026-06-23
+  - Added pytest/pytest-django configuration for backend tests
+  - Added `config.test_settings` using an in-memory SQLite test database
+  - Added Budget Tracker API security tests for authentication, module access, per-user object isolation, and cross-user foreign-key validation
+  - Added auth/current-user endpoint privacy tests
+  - Verified `cd backend; pytest` passes and automatically loads `config.test_settings`
 
 ## Current State of the App
 ### What is complete and working
@@ -52,6 +63,7 @@ The Budget Tracker foundation MVP has been implemented. The project now has a wo
 - Budget Tracker backend endpoints check both JWT auth and `UserModuleAccess(module='budget_tracker')`; frontend route guards are not treated as the only security boundary.
 - Budget Tracker backend access is implemented through `budget_tracker.permissions.HasBudgetTrackerAccess`, used in view decorators via `@permission_classes([HasBudgetTrackerAccess])`.
 - Django `User` is extended in `users/models.py` with `has_module_access(module_name)`, which centralises module access lookup for backend code.
+- Backend tests are run with pytest from `backend/`; `backend/pytest.ini` sets `DJANGO_SETTINGS_MODULE=config.test_settings`, which uses an in-memory SQLite dummy database so tests do not touch `backend/db.sqlite3`.
 - Budget Tracker money values use Django `DecimalField`; frontend formats values for display with `£`.
 
 ## Important Patterns & Preferences

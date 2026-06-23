@@ -122,7 +122,7 @@ class Transaction(TimeStampedModel):
     type = models.CharField(max_length=16, choices=TYPE_CHOICES)
     amount = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0.01)])
     date = models.DateField()
-    description = models.CharField(max_length=255)
+    description = models.CharField(max_length=255, blank=True)
     payee = models.CharField(max_length=150, blank=True)
     notes = models.TextField(blank=True)
 

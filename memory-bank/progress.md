@@ -31,6 +31,11 @@
 - ✅ Backend migration `budget_tracker.0001_initial` created and applied
 - ✅ Backend `python manage.py check` passes
 - ✅ Frontend `npm run lint` and `npm run build` pass
+- ✅ Budget Tracker transaction descriptions are optional (`budget_tracker.0002_alter_transaction_description` applied)
+- ✅ Budget Tracker/Dashboard buttons have clearer hover states and pointer cursors
+- ✅ Backend pytest setup added with automatic isolated in-memory SQLite test database (`config.test_settings` via `backend/pytest.ini`)
+- ✅ Backend security tests added for Budget Tracker module access, per-user data isolation, cross-user relationship validation, and auth/current-user privacy
+- ✅ `cd backend; pytest` passes: 15 tests passing
 
 ## What's Left to Build
 
@@ -71,12 +76,14 @@
 ## Known Issues / Notes
 - `SECRET_KEY` in `settings.py` is a placeholder — must be changed before any production deployment
 - API base URL is hardcoded in two places (`client.js` and `auth.js`) — consider extracting to a shared constant or environment variable
-- No tests written yet (test files exist but are empty stubs)
+- Backend security tests now exist for the implemented auth/Budget Tracker areas; broader feature/regression tests are still needed as modules grow
 - `db.sqlite3` is present in the repo root of `backend/` — ensure it stays gitignored
 - Budget Tracker MVP currently has create/delete flows but limited edit functionality in the UI
 - Budget Tracker recurring items are “upcoming visibility” only; they do not yet auto-create transactions
 - Budget Tracker frontend is a single large page component and may benefit from splitting into smaller components as features grow
+- Button hover/cursor affordances were improved after MVP feedback
 
 ## Evolution of Decisions
 - **2026-06-22**: Project scaffolded with full auth system and module access control. Memory Bank initialised.
 - **2026-06-22**: Budget Tracker foundation MVP implemented as a personal, manual-first budgeting module. Advanced researched features such as CSV import/export, splitting, calendar views, savings goals, custom reports, rules, shared budgeting, and bank sync were deliberately deferred but the model shape supports later expansion.
+- **2026-06-23**: Added initial backend security test suite and pytest configuration. Tests run against `config.test_settings` automatically, using an in-memory SQLite test database rather than the application database.

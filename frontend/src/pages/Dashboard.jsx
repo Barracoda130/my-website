@@ -8,7 +8,7 @@ const MODULE_INFO = {
     description: 'Track your personal income, expenses, and budgets.',
     icon: '💰',
     route: '/budget',
-    color: 'bg-green-50 border-green-200 hover:bg-green-100',
+    color: 'bg-green-50 border-green-200 hover:bg-green-100 hover:border-green-300',
     iconBg: 'bg-green-100',
   },
   family_finances: {
@@ -16,7 +16,7 @@ const MODULE_INFO = {
     description: 'Manage shared finances with your household group.',
     icon: '🏠',
     route: '/family',
-    color: 'bg-blue-50 border-blue-200 hover:bg-blue-100',
+    color: 'bg-blue-50 border-blue-200 hover:bg-blue-100 hover:border-blue-300',
     iconBg: 'bg-blue-100',
   },
 }
@@ -44,7 +44,7 @@ export default function Dashboard() {
             </span>
             <button
               onClick={handleLogout}
-              className="text-sm text-red-600 hover:text-red-700 font-medium"
+              className="text-sm text-red-600 hover:text-red-700 hover:bg-red-50 font-medium px-3 py-2 rounded-lg transition-colors cursor-pointer"
             >
               Sign out
             </button>

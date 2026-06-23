@@ -10,6 +10,8 @@
 | Django REST Framework | >=3.15 | REST API |
 | djangorestframework-simplejwt | >=5.5 | JWT auth + token blacklisting |
 | django-cors-headers | >=4.6 | CORS for frontend dev server |
+| pytest | >=8.0 | Backend test runner |
+| pytest-django | >=4.8 | Django integration for pytest |
 | SQLite | built-in | Database (development) |
 
 ### Frontend
@@ -33,6 +35,14 @@ python manage.py migrate
 python manage.py createsuperuser   # to create admin account
 python manage.py runserver         # runs on http://localhost:8000
 ```
+
+### Running Backend Tests
+```bash
+cd backend
+pytest
+```
+
+`backend/pytest.ini` sets `DJANGO_SETTINGS_MODULE = config.test_settings`, so pytest automatically uses `backend/config/test_settings.py`. That settings module uses an in-memory SQLite dummy database (`NAME=':memory:'`), meaning backend tests do not touch the application development database at `backend/db.sqlite3`.
 
 ### Running the Frontend
 ```bash
@@ -65,6 +75,7 @@ my-website/
 │   ├── db.sqlite3             ← SQLite database (dev only, gitignored)
 │   ├── config/                ← Django project config
 │   │   ├── settings.py
+│   │   ├── test_settings.py      ← pytest settings with in-memory SQLite test DB
 │   │   ├── urls.py
 │   │   ├── wsgi.py
 │   │   └── asgi.py
