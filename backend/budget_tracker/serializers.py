@@ -94,8 +94,6 @@ class BudgetSerializer(UserOwnedModelSerializer):
     def validate_category(self, value):
         if value.user != self.context['request'].user:
             raise serializers.ValidationError('Invalid category.')
-        if value.type != Category.TYPE_EXPENSE:
-            raise serializers.ValidationError('Budgets can only be assigned to expense categories.')
         return value
 
     def validate_month(self, value):

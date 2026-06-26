@@ -82,6 +82,8 @@ class BudgetTrackerSecurityTests(APITestCase):
     def test_budget_endpoints_reject_unauthenticated_users(self):
         endpoints = [
             ('get', '/api/budget/summary/'),
+            ('get', '/api/budget/yearly-plan/?start=2026-06'),
+            ('post', '/api/budget/yearly-plan/'),
             ('post', '/api/budget/bootstrap-defaults/'),
             ('get', '/api/budget/category-groups/'),
             ('get', '/api/budget/categories/'),
@@ -101,6 +103,8 @@ class BudgetTrackerSecurityTests(APITestCase):
 
         endpoints = [
             ('get', '/api/budget/summary/'),
+            ('get', '/api/budget/yearly-plan/?start=2026-06'),
+            ('post', '/api/budget/yearly-plan/'),
             ('post', '/api/budget/bootstrap-defaults/'),
             ('get', '/api/budget/category-groups/'),
             ('get', '/api/budget/categories/'),
@@ -120,6 +124,7 @@ class BudgetTrackerSecurityTests(APITestCase):
 
         endpoints = [
             ('get', '/api/budget/summary/?month=2026-06'),
+            ('get', '/api/budget/yearly-plan/?start=2026-06'),
             ('get', '/api/budget/category-groups/'),
             ('get', '/api/budget/categories/'),
             ('get', '/api/budget/accounts/'),
@@ -241,6 +246,54 @@ class BudgetTrackerSecurityTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(Budget.objects.filter(user=self.owner, month=date(2026, 7, 1)).exists())
 
+    def test_yearly_plan_saves_current_users_income_and_expense_budgets(self):
+        self._authenticate(self.owner)
+
+        response = self.client.post('/api/budget/yearly-plan/', {
+            'start': '2026-04',
+            'budgets': [
+                {
+                    'category': self.owner_data['expense_category'].id,
+                    'month': '2026-04-01',
+                    'amount': '650.00',
+                },
+                {
+                    'category': self.owner_data['expense_category'].id,
+                    'month': '2026-05-01',
+                    'amount': '0',
+                },
+                {
+                    'category': self.owner_data['income_category'].id,
+                    'month': '2026-04-01',
+                    'amount': '2500.00',
+                },
+            ],
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(Budget.objects.filter(user=self.owner, category=self.owner_data['expense_category'], month=date(2026, 4, 1), amount=Decimal('650.00')).exists())
+        self.assertFalse(Budget.objects.filter(user=self.owner, category=self.owner_data['expense_category'], month=date(2026, 5, 1)).exists())
+        self.assertTrue(Budget.objects.filter(user=self.owner, category=self.owner_data['income_category'], month=date(2026, 4, 1), amount=Decimal('2500.00')).exists())
+
+    def test_yearly_plan_rejects_cross_user_and_out_of_window_budget_items(self):
+        self._authenticate(self.owner)
+
+        invalid_payloads = [
+            {
+                'start': '2026-04',
+                'budgets': [{'category': self.other_data['expense_category'].id, 'month': '2026-04-01', 'amount': '100.00'}],
+            },
+            {
+                'start': '2026-04',
+                'budgets': [{'category': self.owner_data['expense_category'].id, 'month': '2027-04-01', 'amount': '100.00'}],
+            },
+        ]
+
+        for payload in invalid_payloads:
+            with self.subTest(payload=payload):
+                response = self.client.post('/api/budget/yearly-plan/', payload, format='json')
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_user_cannot_create_recurring_item_with_another_users_account_or_category(self):
         self._authenticate(self.owner)
 
@@ -277,6 +330,7 @@ class BudgetTrackerSecurityTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['expense_total'], '25.00')
+        self.assertEqual(response.data['expected_income_total'], '0.00')
         self.assertEqual(response.data['budgeted_total'], '500.00')
         recent_transaction_ids = {item['id'] for item in response.data['recent_transactions']}
         upcoming_recurring_item_ids = {item['id'] for item in response.data['upcoming_recurring_items']}

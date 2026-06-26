@@ -3,6 +3,9 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from django.db.models import Sum
+from django.db import transaction as db_transaction
+from django.db.models.deletion import ProtectedError
+from django.utils.dateparse import parse_date
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -34,6 +37,17 @@ def parse_month(month_value):
 
 def month_end(month_start):
     return date(month_start.year, month_start.month, monthrange(month_start.year, month_start.month)[1])
+
+
+def add_months(value, months):
+    month_index = value.month - 1 + months
+    year = value.year + month_index // 12
+    month = month_index % 12 + 1
+    return date(year, month, 1)
+
+
+def planning_months(start_month):
+    return [add_months(start_month, index) for index in range(12)]
 
 
 def serialize_decimal(value):
@@ -113,9 +127,10 @@ def summary(request):
     transactions = Transaction.objects.filter(user=request.user, date__gte=month_start, date__lte=month_finish)
     income_total = transactions.filter(type=Transaction.TYPE_INCOME).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
     expense_total = transactions.filter(type=Transaction.TYPE_EXPENSE).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    budgeted_total = Budget.objects.filter(user=request.user, month=month_start).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    expected_income_total = Budget.objects.filter(user=request.user, month=month_start, category__type=Category.TYPE_INCOME).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    budgeted_total = Budget.objects.filter(user=request.user, month=month_start, category__type=Category.TYPE_EXPENSE).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
 
-    budgets_for_month = Budget.objects.filter(user=request.user, month=month_start).select_related('category')
+    budgets_for_month = Budget.objects.filter(user=request.user, month=month_start, category__type=Category.TYPE_EXPENSE).select_related('category')
     category_spending = []
     for budget in budgets_for_month:
         spent = transactions.filter(type=Transaction.TYPE_EXPENSE, category=budget.category).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
@@ -138,6 +153,7 @@ def summary(request):
     return Response({
         'month': month_start.strftime('%Y-%m'),
         'income_total': serialize_decimal(income_total),
+        'expected_income_total': serialize_decimal(expected_income_total),
         'expense_total': serialize_decimal(expense_total),
         'net_total': serialize_decimal(income_total - expense_total),
         'budgeted_total': serialize_decimal(budgeted_total),
@@ -146,6 +162,82 @@ def summary(request):
         'recent_transactions': TransactionSerializer(transactions.select_related('account', 'category')[:8], many=True).data,
         'upcoming_recurring_items': RecurringItemSerializer(upcoming, many=True).data,
     })
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([HasBudgetTrackerAccess])
+def yearly_plan(request):
+    if request.method == 'GET':
+        start_month = parse_month(request.query_params.get('start'))
+        if not start_month:
+            return Response({'detail': 'Invalid start month. Use YYYY-MM.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        months = planning_months(start_month)
+        groups = CategoryGroup.objects.filter(user=request.user, is_archived=False).prefetch_related('categories')
+        categories = Category.objects.filter(user=request.user, is_archived=False).select_related('group')
+        budgets = Budget.objects.filter(user=request.user, month__in=months).select_related('category')
+        recurring = RecurringItem.objects.filter(user=request.user, is_active=True).select_related('account', 'category')
+
+        return Response({
+            'start': start_month.strftime('%Y-%m'),
+            'months': [month.strftime('%Y-%m') for month in months],
+            'month_dates': [month.isoformat() for month in months],
+            'category_groups': CategoryGroupSerializer(groups, many=True).data,
+            'categories': CategorySerializer(categories, many=True).data,
+            'budgets': BudgetSerializer(budgets, many=True).data,
+            'recurring_items': RecurringItemSerializer(recurring, many=True).data,
+        })
+
+    start_month = parse_month(request.data.get('start'))
+    if not start_month:
+        return Response({'detail': 'Invalid start month. Use YYYY-MM.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    valid_months = set(planning_months(start_month))
+    budget_items = request.data.get('budgets', [])
+    if not isinstance(budget_items, list):
+        return Response({'budgets': 'Expected a list of budget items.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    saved = []
+    errors = []
+    with db_transaction.atomic():
+        for index, item in enumerate(budget_items):
+            category_id = item.get('category')
+            month_value = parse_date(item.get('month', ''))
+            amount = item.get('amount')
+
+            if not month_value or month_value.day != 1 or month_value not in valid_months:
+                errors.append({'index': index, 'month': 'Month must be the first day of a month in the selected 12-month plan.'})
+                continue
+
+            try:
+                category = Category.objects.get(id=category_id, user=request.user, type__in=[Category.TYPE_INCOME, Category.TYPE_EXPENSE])
+            except Category.DoesNotExist:
+                errors.append({'index': index, 'category': 'Invalid income or expense category.'})
+                continue
+
+            try:
+                amount_decimal = Decimal(str(amount))
+            except Exception:
+                errors.append({'index': index, 'amount': 'Enter a valid amount.'})
+                continue
+
+            if amount_decimal <= 0:
+                Budget.objects.filter(user=request.user, category=category, month=month_value).delete()
+                continue
+
+            budget, _ = Budget.objects.update_or_create(
+                user=request.user,
+                category=category,
+                month=month_value,
+                defaults={'amount': amount_decimal},
+            )
+            saved.append(budget)
+
+        if errors:
+            db_transaction.set_rollback(True)
+            return Response({'budgets': errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    return Response({'saved': BudgetSerializer(saved, many=True).data})
 
 
 def collection_view(request, queryset, serializer_class):
@@ -181,6 +273,21 @@ def category_groups(request):
 @api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([HasBudgetTrackerAccess])
 def category_group_detail(request, pk):
+    if request.method == 'DELETE':
+        group = get_object_or_404(CategoryGroup.objects.all(), pk=pk, user=request.user)
+        categories = Category.objects.filter(user=request.user, group=group)
+        try:
+            with db_transaction.atomic():
+                Budget.objects.filter(user=request.user, category__in=categories).delete()
+                categories.delete()
+                group.delete()
+        except ProtectedError:
+            return Response(
+                {'detail': 'This group has categories linked to transactions or recurring items. Remove those links before deleting the group.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     return detail_view(request, CategoryGroup.objects.all(), CategoryGroupSerializer, pk)
 
 

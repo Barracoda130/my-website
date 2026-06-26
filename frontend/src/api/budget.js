@@ -21,6 +21,16 @@ export const getBudgetSummary = async (month) => {
   return response.data
 }
 
+export const getYearlyBudgetPlan = async (start) => {
+  const response = await apiClient.get(`/budget/yearly-plan/${buildQuery({ start })}`)
+  return response.data
+}
+
+export const saveYearlyBudgetPlan = async (payload) => {
+  const response = await apiClient.post('/budget/yearly-plan/', payload)
+  return response.data
+}
+
 export const getCategoryGroups = async () => {
   const response = await apiClient.get('/budget/category-groups/')
   return response.data
@@ -31,6 +41,10 @@ export const createCategoryGroup = async (payload) => {
   return response.data
 }
 
+export const deleteCategoryGroup = async (id) => {
+  await apiClient.delete(`/budget/category-groups/${id}/`)
+}
+
 export const getCategories = async () => {
   const response = await apiClient.get('/budget/categories/')
   return response.data
@@ -39,6 +53,10 @@ export const getCategories = async () => {
 export const createCategory = async (payload) => {
   const response = await apiClient.post('/budget/categories/', payload)
   return response.data
+}
+
+export const deleteCategory = async (id) => {
+  await apiClient.delete(`/budget/categories/${id}/`)
 }
 
 export const getAccounts = async () => {

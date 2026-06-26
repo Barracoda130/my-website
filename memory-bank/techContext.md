@@ -108,7 +108,11 @@ my-website/
             ├── Unauthorized.jsx
             ├── NotFound.jsx
             └── modules/
-                ├── BudgetTracker.jsx   ← Budget Tracker MVP page
+                ├── budget/
+                │   ├── BudgetDashboard.jsx ← view-only Budget Tracker dashboard
+                │   ├── BudgetManage.jsx    ← focused add/edit/setup workflows
+                │   ├── useBudgetData.js    ← shared Budget Tracker data loading hook
+                │   └── helpers.js          ← shared Budget Tracker formatting/defaults
                 └── FamilyFinances.jsx  ← stub
 ```
 

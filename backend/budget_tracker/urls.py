@@ -5,6 +5,7 @@ from . import views
 urlpatterns = [
     path('bootstrap-defaults/', views.bootstrap_defaults),
     path('summary/', views.summary),
+    path('yearly-plan/', views.yearly_plan),
     path('category-groups/', views.category_groups),
     path('category-groups/<int:pk>/', views.category_group_detail),
     path('categories/', views.categories),

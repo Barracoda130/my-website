@@ -5,7 +5,9 @@ import { ProtectedRoute, ModuleRoute } from './routes/ProtectedRoute'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
-import BudgetTracker from './pages/modules/BudgetTracker'
+import BudgetDashboard from './pages/modules/budget/BudgetDashboard'
+import BudgetManage from './pages/modules/budget/BudgetManage'
+import BudgetYearPlanner from './pages/modules/budget/BudgetYearPlanner'
 import FamilyFinances from './pages/modules/FamilyFinances'
 import Unauthorized from './pages/Unauthorized'
 import NotFound from './pages/NotFound'
@@ -38,7 +40,29 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ModuleRoute moduleSlug="budget_tracker">
-                  <BudgetTracker />
+                  <BudgetDashboard />
+                </ModuleRoute>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/budget/manage"
+            element={
+              <ProtectedRoute>
+                <ModuleRoute moduleSlug="budget_tracker">
+                  <BudgetManage />
+                </ModuleRoute>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/budget/yearly"
+            element={
+              <ProtectedRoute>
+                <ModuleRoute moduleSlug="budget_tracker">
+                  <BudgetYearPlanner />
                 </ModuleRoute>
               </ProtectedRoute>
             }

@@ -23,6 +23,29 @@ The Budget Tracker foundation MVP has been implemented. The project now has a wo
   - Added Budget Tracker API security tests for authentication, module access, per-user object isolation, and cross-user foreign-key validation
   - Added auth/current-user endpoint privacy tests
   - Verified `cd backend; pytest` passes and automatically loads `config.test_settings`
+- Budget Tracker frontend split — 2026-06-23
+  - Moved Budget Tracker pages into `frontend/src/pages/modules/budget/`
+  - Replaced the single mixed-purpose `BudgetTracker.jsx` page with a view-only `BudgetDashboard.jsx` and a focused `BudgetManage.jsx`
+  - Added `useBudgetData.js` for shared Budget Tracker data loading and `helpers.js` for shared formatting/defaults
+  - Added `/budget/manage` route protected by the existing Budget Tracker module guard
+  - Management page uses section navigation (`transactions`, `budgets`, `setup`, `recurring`) via query params so users see fewer controls at once
+  - Updated ESLint ignores to exclude Vite's generated `.vite` cache
+  - Verified `cd frontend; npm run lint; npm run build`
+- Budget Tracker UX polish — 2026-06-23
+  - Monthly budget items now clearly highlight overbudget categories with red styling, an overbudget label, and over amount
+  - Recurring items now display relative due status such as `due today`, `in 5 days`, or overdue text
+  - Recurring item form now labels `next_due_date` as `First payment date` and exposes a clear `Frequency` field
+  - Budget manage actions now show inline green success feedback directly underneath the button/action the user pressed
+  - Verified `cd frontend; npm run lint; npm run build`
+- Budget Tracker rolling yearly planner — 2026-06-23
+  - Added `/api/budget/yearly-plan/` GET/POST endpoint for a rolling 12-month planning period starting from any month/year
+  - Added backend validation/tests so yearly-plan saves only current-user expense category monthly `Budget` allocations
+  - Added `/budget/yearly` route and rebuilt `BudgetYearPlanner.jsx` as a simpler spreadsheet-style planner
+  - Year planner shows existing category groups/categories, lets users add categories inline, enter a price and weekly/monthly/yearly frequency per category, choose one global weekly/monthly/yearly display mode for all group totals, and save monthly-equivalent `Budget` allocations
+  - Extended planner with inline expense category group creation, a proper Income section, add-income rows with taxed toggles, estimated tax on taxed income, and a bottom summary table for income, each expense group, total expenses, and net total
+  - Aligned planner rows/forms/subtotals to shared columns ordered as name, taxed (income only), frequency, amount, actions; added delete actions for categories and expense category groups from the planner page
+  - Added Budget dashboard “Plan year” link
+  - Verified `.\.venv\Scripts\python.exe backend\manage.py check`, `.\.venv\Scripts\python.exe -m pytest backend`, and `cd frontend; npm run lint; npm run build`
 
 ## Current State of the App
 ### What is complete and working
@@ -34,7 +57,8 @@ The Budget Tracker foundation MVP has been implemented. The project now has a wo
 - `UserGroup` model for collaborative module data sharing (backend only, not yet wired to any module)
 - Django admin for managing users, invite tokens, module access, and groups
 - Budget Tracker backend models, serializers, views, URLs, admin, and migration
-- Budget Tracker frontend MVP with summary cards, default setup, manual transactions, monthly budgets, setup forms, and recurring item list/form
+- Budget Tracker frontend with view-only dashboard, separate management page, default setup, manual transactions, monthly budgets, setup forms, and recurring item list/form
+- Budget Tracker simplified yearly planner with start month/year selection, grouped categories, inline category group/category creation/deletion, income planning rows with taxed toggles, per-row weekly/monthly/yearly prices, one global total display frequency, aligned row columns ordered name/taxed/frequency/amount/actions, summary table, and monthly-equivalent expense budget saving
 
 ### What is a stub / not yet implemented
 - `family_finances` Django app — models, views, and URLs are empty
@@ -60,6 +84,12 @@ The Budget Tracker foundation MVP has been implemented. The project now has a wo
 - The `UserGroup` model is already in place for Family Finances shared data — use it when building that module
 - Tailwind CSS v4 is used via the `@tailwindcss/vite` plugin (not the PostCSS plugin) — no `tailwind.config.js` file needed
 - Budget Tracker is intentionally personal-user scoped. Shared household budgeting should be added later either in Family Finances or via deliberate group-aware extensions.
+- Budget Tracker `/budget` is intentionally view-only; adding/editing/deleting/setup actions belong on `/budget/manage`.
+- Budget Tracker frontend pages should live under `frontend/src/pages/modules/budget/`.
+- Budget Tracker management UX should avoid showing every control at once; use focused section navigation for transactions, budgets, setup, and recurring items.
+- Budget Tracker yearly planning lives on `/budget/yearly`; it uses the existing monthly `Budget` records as the only persisted budget output. The UI is spreadsheet-style, normalising weekly/monthly/yearly expense category entries into monthly budget rows. Income row amounts/tax flags are currently planning-only, while new income categories/groups are persisted as category data.
+- Budget Tracker add/update actions should provide inline confirmation directly below the triggering button/action, not a global toast.
+- Recurring item `next_due_date` is presented to users as `First payment date` when creating a new recurring item.
 - Budget Tracker backend endpoints check both JWT auth and `UserModuleAccess(module='budget_tracker')`; frontend route guards are not treated as the only security boundary.
 - Budget Tracker backend access is implemented through `budget_tracker.permissions.HasBudgetTrackerAccess`, used in view decorators via `@permission_classes([HasBudgetTrackerAccess])`.
 - Django `User` is extended in `users/models.py` with `has_module_access(module_name)`, which centralises module access lookup for backend code.

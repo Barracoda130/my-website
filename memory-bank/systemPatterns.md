@@ -13,7 +13,7 @@ frontend/          ← React + Vite + Tailwind CSS
     context/       ← React Context (AuthContext)
     routes/        ← Route guards (ProtectedRoute, ModuleRoute)
     pages/         ← Page components
-      modules/     ← Module-specific pages (BudgetTracker, FamilyFinances)
+      modules/     ← Module-specific pages/folders (budget, FamilyFinances)
 
 backend/           ← Django project
   config/          ← Django settings, root URLs, WSGI/ASGI
@@ -84,6 +84,20 @@ Two components in `routes/ProtectedRoute.jsx`:
 - `api/auth.js` — named functions for each auth endpoint (login, register, logout, getMe, getMyModules, getMyGroups, validateInvite)
 - `api/budget.js` — named functions for Budget Tracker endpoints (summary, bootstrap defaults, categories, accounts, transactions, budgets, recurring items)
 
+### Budget Tracker Frontend Split
+- Budget Tracker pages live in `frontend/src/pages/modules/budget/`.
+- `/budget` renders `BudgetDashboard.jsx`, a view-only dashboard for summary cards, transaction lists, budget progress, and recurring item visibility.
+- `/budget/manage` renders `BudgetManage.jsx`, the mutation/control area for setup, adding transactions, setting budgets, deleting transactions, and adding recurring items.
+- `/budget/yearly` renders `BudgetYearPlanner.jsx`, a simplified spreadsheet-style rolling 12-month planner where users choose the start month/year, view categories grouped by category group, add/delete expense category groups/categories inline, plan income rows with taxed toggles, enter weekly/monthly/yearly row prices, use one global total display frequency, view an income/expense/net summary table, and save monthly-equivalent expense `Budget` allocations. Planner rows use shared grid columns ordered as name, taxed (income only), frequency, amount, actions so existing rows, new-row forms, tax rows, and subtotal rows align vertically.
+- `BudgetManage.jsx` uses query-param section navigation (`?section=transactions|budgets|setup|recurring`) so users only see one focused group of controls at a time.
+- Shared Budget Tracker loading/state logic belongs in `useBudgetData.js`; shared formatting/defaults belong in `helpers.js`.
+- The global Dashboard module card should continue linking to `/budget`, not directly to management.
+- Monthly budget displays should clearly highlight overbudget categories using warning styling and an explicit overbudget amount.
+- Recurring item due dates should display both the stored date and relative status (`due today`, `in x days`, overdue text).
+- When creating recurring items, present `next_due_date` as `First payment date` in the UI.
+- Budget manage mutations should show inline success feedback directly under the triggering button/action.
+- Yearly planner frequency choices, income row amounts, and taxed toggles are not persisted; expense category amounts are normalised into monthly `Budget` rows via the yearly-plan API. Newly created groups/categories and delete actions use the existing category group/category endpoints.
+
 ### Dashboard Module Cards
 - `MODULE_INFO` map in `Dashboard.jsx` defines display metadata (title, description, icon, route, colours) for each module slug
 - When adding a new module, add an entry to `MODULE_INFO` and register the route in `App.jsx`
@@ -104,6 +118,7 @@ Two components in `routes/ProtectedRoute.jsx`:
 /api/budget/                   ← Budget Tracker API
 /api/budget/bootstrap-defaults/← Create starter groups/categories/account (POST)
 /api/budget/summary/           ← Monthly budget dashboard summary (GET, `?month=YYYY-MM`)
+/api/budget/yearly-plan/       ← Rolling 12-month planner data/save (GET/POST, `?start=YYYY-MM` for GET)
 /api/budget/category-groups/   ← Category group list/create
 /api/budget/categories/        ← Category list/create
 /api/budget/accounts/          ← Account list/create
