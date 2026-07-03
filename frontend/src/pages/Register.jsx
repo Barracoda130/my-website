@@ -20,6 +20,7 @@ export default function Register() {
     password_confirm: '',
     first_name: '',
     last_name: '',
+    family_code: '',
   })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
@@ -194,6 +195,25 @@ export default function Register() {
               {errors.password_confirm && (
                 <p className="mt-1 text-xs text-red-600">{errors.password_confirm}</p>
               )}
+            </div>
+
+            <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+              <label htmlFor="family_code" className="block text-sm font-medium text-gray-700 mb-1">
+                Family code
+              </label>
+              <p className="text-xs text-gray-500 mb-2">
+                Enter your family code if you&apos;ve been given access to a Family Planner.
+              </p>
+              <input
+                id="family_code"
+                name="family_code"
+                type="text"
+                value={formData.family_code}
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent uppercase ${errors.family_code ? 'border-red-400' : 'border-gray-300'}`}
+                placeholder="e.g. DEMO-FAMILY"
+              />
+              {errors.family_code && <p className="mt-1 text-xs text-red-600">{errors.family_code}</p>}
             </div>
 
             <button

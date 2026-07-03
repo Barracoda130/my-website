@@ -85,7 +85,7 @@ my-website/
 │   │   ├── views.py
 │   │   └── urls.py
 │   ├── budget_tracker/        ← Budget Tracker app (MVP implemented)
-│   └── family_finances/       ← Family Finances app (stub)
+│   └── family_finances/       ← Family Planner / Family Fairness Ledger app
 └── frontend/
     ├── package.json
     ├── vite.config.js
@@ -113,7 +113,8 @@ my-website/
                 │   ├── BudgetManage.jsx    ← focused add/edit/setup workflows
                 │   ├── useBudgetData.js    ← shared Budget Tracker data loading hook
                 │   └── helpers.js          ← shared Budget Tracker formatting/defaults
-                └── FamilyFinances.jsx  ← stub
+                ├── FamilyFinances.jsx  ← legacy stub no longer routed
+                └── family/             ← Family Planner pages/components
 ```
 
 ## Configuration Notes
@@ -122,6 +123,16 @@ my-website/
 - **JWT tokens**: stored in `localStorage` under keys `access_token` and `refresh_token`
 - **Time zone**: `Europe/London` (set in Django settings)
 - **Secret key**: currently uses insecure placeholder — must be replaced with env variable for production
+
+## Family Planner Setup Notes
+- Create families in Django admin under **Family Finances → Families**, then share the family `code` with invited users.
+- During registration, users can optionally enter the family code to join that family and automatically receive `family_finances` access.
+- Development seed command:
+```bash
+cd backend
+python manage.py seed_family_planner
+```
+- The seed command creates `Demo Family` with code `DEMO-FAMILY`, 4 children, example split transactions, excluded support, large expense, and recurring allowance templates.
 
 ## Git
 - Remote: `https://github.com/Barracoda130/my-website.git`

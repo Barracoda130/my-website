@@ -19,7 +19,7 @@ backend/           ← Django project
   config/          ← Django settings, root URLs, WSGI/ASGI
   users/           ← Auth, invite tokens, module access, user groups
   budget_tracker/  ← Budget Tracker module (personal budgeting MVP)
-  family_finances/ ← Family Finances module (stub)
+  family_finances/ ← Family Planner / Family Fairness Ledger module
 ```
 
 ## Key Technical Decisions
@@ -59,6 +59,20 @@ backend/           ← Django project
   - `RecurringItem` — lite upcoming bill/subscription/income visibility, no auto-transaction generation yet
 - Backend endpoints use `HasBudgetTrackerAccess`, a custom DRF permission class in `backend/budget_tracker/permissions.py`, to check authentication and `request.user.has_module_access('budget_tracker')`.
 - Querysets are scoped to `request.user`; users must not access other users' budget records by ID.
+
+### Family Planner / Family Finances Domain
+- Family Planner is family-scoped rather than user-owned.
+- Core models:
+  - `Family` — family ledger boundary with unique join `code`
+  - `FamilyMembership` — links users to a family and role
+  - `Child` — child profile under a family
+  - `FamilyTransaction` — parental financial support record with type/category/paid-by/fairness/large/recurring fields
+  - `TransactionChildSplit` — per-child amount/percentage for every transaction
+- All transactions are split-first. A transaction for one child is represented as one split with 100%; shared expenses have multiple split rows.
+- Fairness calculations live in `backend/family_finances/services/fairness.py` and use split amounts. Transactions with `counts_toward_fairness=False` are excluded from counted support/average/gaps but shown as excluded support.
+- Recurring generation lives in `backend/family_finances/services/recurring.py`. Template transactions have `recurring=True`; generated instances link to `generated_from` and are not themselves recurring templates.
+- Family module endpoints use `HasFamilyFinancesAccess`, then resolve the current user's active `FamilyMembership` before returning data.
+- Family-code onboarding extends invite-only registration: `family_code` is optional; a valid code links the new user to `Family`, ensures a starter child, and grants `family_finances` module access.
 
 ## Frontend Patterns
 
@@ -130,6 +144,16 @@ Two components in `routes/ProtectedRoute.jsx`:
 /api/budget/budgets/           ← Budget list/create (`?month=YYYY-MM` supported)
 /api/budget/recurring-items/   ← Recurring item list/create
 /api/family/                   ← Family Finances API (stub)
+/api/family/current/           ← Current user's family membership/context
+/api/family/options/           ← Transaction type/category/paid-by/frequency options
+/api/family/children/          ← Child list/create
+/api/family/children/<id>/     ← Child get/update/deactivate
+/api/family/transactions/      ← Transaction list/create with filters
+/api/family/transactions/<id>/ ← Transaction get/update/delete
+/api/family/transactions/<id>/duplicate/ ← Duplicate a transaction
+/api/family/dashboard/         ← Family dashboard/fairness totals
+/api/family/fairness/          ← Direct fairness comparison
+/api/family/recurring/generate/← Generate recurring instances up to date
 ```
 
 ### Adding a New Module — Checklist

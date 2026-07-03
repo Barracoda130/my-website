@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
+from family_finances.models import Family, FamilyMembership
 from .models import UserProfile, InviteToken, UserModuleAccess, UserGroup, AVAILABLE_MODULES
 
 
@@ -25,6 +26,7 @@ class RegisterSerializer(serializers.Serializer):
     first_name = serializers.CharField(required=False, allow_blank=True)
     last_name = serializers.CharField(required=False, allow_blank=True)
     invite_token = serializers.UUIDField()
+    family_code = serializers.CharField(required=False, allow_blank=True, max_length=20)
 
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
@@ -43,13 +45,23 @@ class RegisterSerializer(serializers.Serializer):
         if not invite.is_valid():
             raise serializers.ValidationError({"invite_token": "This invite token has expired or already been used."})
 
+        family_code = (attrs.get('family_code') or '').strip().upper()
+        if family_code:
+            try:
+                family = Family.objects.get(code=family_code, is_active=True)
+            except Family.DoesNotExist:
+                raise serializers.ValidationError({"family_code": "Invalid family code."})
+            attrs['family'] = family
+
         attrs['invite'] = invite
         return attrs
 
     def create(self, validated_data):
         invite = validated_data.pop('invite')
+        family = validated_data.pop('family', None)
         validated_data.pop('invite_token')
         validated_data.pop('password_confirm')
+        validated_data.pop('family_code', None)
 
         user = User.objects.create_user(
             username=validated_data['username'],
@@ -66,6 +78,19 @@ class RegisterSerializer(serializers.Serializer):
         invite.is_used = True
         invite.used_by = user
         invite.save()
+
+        if family:
+            FamilyMembership.objects.get_or_create(
+                family=family,
+                user=user,
+                defaults={'role': FamilyMembership.ROLE_MEMBER},
+            )
+            family.ensure_default_child()
+            UserModuleAccess.objects.get_or_create(
+                user=user,
+                module='family_finances',
+                defaults={'granted_by': invite.created_by},
+            )
 
         return user
 

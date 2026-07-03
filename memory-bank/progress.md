@@ -95,11 +95,16 @@
 - [ ] Custom reports/date ranges
 
 ### Family Finances Module
-- [ ] Django models (shared expenses, contributions — using `UserGroup` for multi-user data)
-- [ ] DRF serializers + views (CRUD)
-- [ ] URL patterns in `family_finances/urls.py`
-- [ ] Frontend `FamilyFinances.jsx` page (currently a stub)
-- [ ] API functions in `frontend/src/api/` for family finance endpoints
+- [x] Family database model and family-code onboarding
+- [x] Django models for children, transactions, and transaction child splits
+- [x] DRF serializers + views for MVP CRUD/dashboard/fairness/recurring generation
+- [x] URL patterns in `family_finances/urls.py`
+- [x] Frontend API functions in `frontend/src/api/family.js`
+- [x] Frontend Family Planner MVP pages under `frontend/src/pages/modules/family/`
+- [ ] Rich child detail page with monthly trend/category breakdown/history
+- [ ] Full transaction filter UI for child/date/type/category/fairness/recurring/large expense
+- [ ] Advanced split form for selecting multiple children and dividing shared expenses in the UI
+- [ ] Frontend family creation/code management flow
 
 ### Production Readiness
 - [ ] Move `SECRET_KEY` to environment variable (`.env` file)
@@ -111,9 +116,9 @@
 - [ ] Consider moving JWT tokens from `localStorage` to httpOnly cookies
 
 ## Current Status
-**Phase**: Core scaffolding complete. Budget Tracker foundation MVP plus rolling yearly planner and CSV transaction import implemented. Ready for further Budget Tracker polish or Family Finances implementation.
+**Phase**: Core scaffolding complete. Budget Tracker is feature-rich, and Family Planner / Family Fairness Ledger MVP is implemented with family-code onboarding, split-aware fairness calculations, recurring support, and basic frontend pages.
 
-## Known Issues / Notes
+Latest update: Family Planner MVP added under `family_finances`; full backend test suite passes and frontend lint/build passes.
 - `SECRET_KEY` in `settings.py` is a placeholder — must be changed before any production deployment
 - API base URL is hardcoded in two places (`client.js` and `auth.js`) — consider extracting to a shared constant or environment variable
 - Backend security tests now exist for the implemented auth/Budget Tracker areas; broader feature/regression tests are still needed as modules grow

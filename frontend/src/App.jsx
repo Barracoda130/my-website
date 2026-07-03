@@ -8,7 +8,10 @@ import Dashboard from './pages/Dashboard'
 import BudgetDashboard from './pages/modules/budget/BudgetDashboard'
 import BudgetManage from './pages/modules/budget/BudgetManage'
 import BudgetYearPlanner from './pages/modules/budget/BudgetYearPlanner'
-import FamilyFinances from './pages/modules/FamilyFinances'
+import FamilyDashboard from './pages/modules/family/FamilyDashboard'
+import FamilyChildren from './pages/modules/family/FamilyChildren'
+import FamilyTransactions from './pages/modules/family/FamilyTransactions'
+import FamilyFairness from './pages/modules/family/FamilyFairness'
 import Unauthorized from './pages/Unauthorized'
 import NotFound from './pages/NotFound'
 
@@ -73,11 +76,25 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ModuleRoute moduleSlug="family_finances">
-                  <FamilyFinances />
+                  <FamilyDashboard />
                 </ModuleRoute>
               </ProtectedRoute>
             }
           />
+
+          {['/family/children', '/family/transactions', '/family/fairness'].map((path) => (
+            <Route
+              key={path}
+              path={path}
+              element={
+                <ProtectedRoute>
+                  <ModuleRoute moduleSlug="family_finances">
+                    {path.endsWith('children') ? <FamilyChildren /> : path.endsWith('transactions') ? <FamilyTransactions /> : <FamilyFairness />}
+                  </ModuleRoute>
+                </ProtectedRoute>
+              }
+            />
+          ))}
 
           {/* Utility pages */}
           <Route path="/unauthorized" element={<Unauthorized />} />

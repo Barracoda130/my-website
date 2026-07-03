@@ -64,6 +64,20 @@ The Budget Tracker foundation MVP has been implemented. The project now has a wo
   - Refactored `/budget` into a graph/report-first dashboard with spending trend bars, category breakdown, daily spending mini bars, budget-vs-actual, top payees, upcoming bills, and prominent transaction buttons linking to `/budget/manage?section=transactions`
   - Added backend tests for report permissions, current-user scoping, trend/breakdown output, and invalid ranges
   - Verified `cd backend; python manage.py check; pytest` and `cd frontend; npm run lint; npm run build`
+- Family Planner / Family Fairness Ledger MVP — 2026-07-03
+  - Implemented the existing `family_finances` module using the current Django REST Framework + React/Vite/Tailwind stack
+  - Added family-code onboarding: invited users can enter `family_code` during registration to join a `Family`, receive `family_finances` module access, and get linked via `FamilyMembership`
+  - Added backend models/admin/migration for `Family`, `FamilyMembership`, `Child`, `FamilyTransaction`, and `TransactionChildSplit`
+  - Every family can ensure at least one starter child via `Family.ensure_default_child()`
+  - Added split-first transaction design so one-child and shared expenses are both represented through `TransactionChildSplit`
+  - Added required recurring fields (`recurring`, `recurring_frequency`, start/end dates) and recurring generation utility with duplicate prevention via `generated_from` + date
+  - Added seed command `python manage.py seed_family_planner` creating `Demo Family` with code `DEMO-FAMILY`, 4 children, and example transactions
+  - Added fairness utilities with comments for counted totals, family average, difference from average, gap to highest-supported child, category/type totals, excluded totals, large expenses, and rolling 12-month totals
+  - Added `/api/family/` endpoints for current family, options, children CRUD/deactivate, transactions CRUD/delete/duplicate/filter, dashboard, fairness, and recurring generation
+  - Added frontend API layer `frontend/src/api/family.js`
+  - Added Family Planner pages under `frontend/src/pages/modules/family/`: dashboard, children, transactions, fairness, layout, helpers
+  - Updated registration UI with optional family code field
+  - Verified `cd backend; python manage.py check; pytest` passes with 26 tests and `cd frontend; npm run lint; npm run build` passes
 
 ## Current State of the App
 ### What is complete and working
@@ -73,6 +87,12 @@ The Budget Tracker foundation MVP has been implemented. The project now has a wo
 - `ProtectedRoute` and `ModuleRoute` route guards
 - Dashboard page showing module cards based on user's granted access
 - `UserGroup` model for collaborative module data sharing (backend only, not yet wired to any module)
+- Family Planner / Family Fairness Ledger MVP in `family_finances`
+  - Family-code onboarding at registration
+  - Family-scoped children and transactions
+  - Transaction splitting across children
+  - Fairness dashboard calculations using split amounts and excluding non-fairness transactions where appropriate
+  - Basic recurring transaction generation
 - Django admin for managing users, invite tokens, module access, and groups
 - Budget Tracker backend models, serializers, views, URLs, admin, and migration
 - Budget Tracker frontend with view-only dashboard, separate management page, default setup, manual transactions, monthly budgets, setup forms, and recurring item list/form
@@ -81,18 +101,18 @@ The Budget Tracker foundation MVP has been implemented. The project now has a wo
 - Budget Tracker simplified yearly planner with start month/year selection, grouped categories, inline category group/category creation/deletion, income planning rows with taxed toggles, per-row weekly/monthly/yearly prices, one global total display frequency, aligned row columns ordered name/taxed/frequency/amount/actions, summary table, and monthly-equivalent expense budget saving
 
 ### What is a stub / not yet implemented
-- `family_finances` Django app — models, views, and URLs are empty
-- `FamilyFinances.jsx` frontend page — stub
+- Family Planner UI is MVP-level and may need richer edit forms, child detail route, advanced filters, and more polished split-entry controls
 
 ## Next Steps (likely)
 1. Improve the **Budget Tracker** module after MVP feedback:
    - Add edit forms/modals for transactions, categories, accounts, budgets, and recurring items
    - Add delete confirmations and better field-level validation display
    - Add CSV export/import, transaction splitting, calendar view, savings goals, and reports in later phases
-2. Implement the **Family Finances** module:
-   - Leverage `UserGroup` for shared data between household members
-   - Design models for shared expenses, contributions, etc.
-   - Build frontend page
+2. Improve the **Family Planner / Family Finances** module:
+   - Add richer transaction edit forms and split-entry controls
+   - Add child detail route/page with trends and category breakdowns
+   - Add full transaction filter UI for child/date/type/category/fairness/recurring/large expense
+   - Add frontend family admin flow for creating families/codes if desired
 3. Production hardening (when ready to deploy):
    - Move `SECRET_KEY` to environment variable
    - Switch `DEBUG = False`
@@ -101,6 +121,12 @@ The Budget Tracker foundation MVP has been implemented. The project now has a wo
 
 ## Active Decisions & Considerations
 - Module slugs (`budget_tracker`, `family_finances`) are the single source of truth — they must match exactly between `AVAILABLE_MODULES` (backend), `MODULE_INFO` (frontend Dashboard), and `ModuleRoute moduleSlug` props
+- Family Planner uses the existing Django/React stack, not Prisma/Next.js. Django models/migrations are the source of truth.
+- Family Planner ownership boundary is `family_finances.models.Family`; users link to families through `FamilyMembership` using a family code during invite-only registration.
+- Entering a valid family code during registration grants `family_finances` module access automatically. No family code means normal registration without Family Planner access.
+- Family Planner transaction totals must use `TransactionChildSplit.amount`, never assume the parent transaction belongs to one child.
+- Fairness calculations should exclude `counts_toward_fairness=False` from counted totals/averages/gaps but still show excluded support separately.
+- Recurring Family Planner transactions are template transactions with `recurring=True`; generated instances use `generated_from` and `recurring=False` to avoid duplicate generation.
 - The `UserGroup` model is already in place for Family Finances shared data — use it when building that module
 - Tailwind CSS v4 is used via the `@tailwindcss/vite` plugin (not the PostCSS plugin) — no `tailwind.config.js` file needed
 - Budget Tracker is intentionally personal-user scoped. Shared household budgeting should be added later either in Family Finances or via deliberate group-aware extensions.
