@@ -14,6 +14,18 @@ export const currentMonthNumber = () => new Date().getMonth() + 1
 
 export const buildMonthString = (year, monthNumber) => `${year}-${String(monthNumber).padStart(2, '0')}`
 
+export const addMonths = (month, offset) => {
+  const date = new Date(`${month}-01T00:00:00`)
+  date.setMonth(date.getMonth() + offset)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+}
+
+export const getMonthDateRange = (month) => {
+  const [year, monthNumber] = month.split('-').map(Number)
+  const daysInMonth = new Date(year, monthNumber, 0).getDate()
+  return Array.from({ length: daysInMonth }, (_, index) => `${month}-${String(index + 1).padStart(2, '0')}`)
+}
+
 export const recurringMonthlyEquivalent = (item) => {
   const amount = Number(item?.amount || 0)
   if (item?.frequency === 'weekly') return amount * 52 / 12

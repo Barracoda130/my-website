@@ -21,6 +21,11 @@ export const getBudgetSummary = async (month) => {
   return response.data
 }
 
+export const getBudgetReports = async ({ start, end }) => {
+  const response = await apiClient.get(`/budget/reports/${buildQuery({ start, end })}`)
+  return response.data
+}
+
 export const getYearlyBudgetPlan = async (start) => {
   const response = await apiClient.get(`/budget/yearly-plan/${buildQuery({ start })}`)
   return response.data
@@ -41,6 +46,11 @@ export const createCategoryGroup = async (payload) => {
   return response.data
 }
 
+export const updateCategoryGroup = async (id, payload) => {
+  const response = await apiClient.patch(`/budget/category-groups/${id}/`, payload)
+  return response.data
+}
+
 export const deleteCategoryGroup = async (id) => {
   await apiClient.delete(`/budget/category-groups/${id}/`)
 }
@@ -52,6 +62,11 @@ export const getCategories = async () => {
 
 export const createCategory = async (payload) => {
   const response = await apiClient.post('/budget/categories/', payload)
+  return response.data
+}
+
+export const updateCategory = async (id, payload) => {
+  const response = await apiClient.patch(`/budget/categories/${id}/`, payload)
   return response.data
 }
 
@@ -69,6 +84,11 @@ export const createAccount = async (payload) => {
   return response.data
 }
 
+export const updateAccount = async (id, payload) => {
+  const response = await apiClient.patch(`/budget/accounts/${id}/`, payload)
+  return response.data
+}
+
 export const getTransactions = async (filters = {}) => {
   const response = await apiClient.get(`/budget/transactions/${buildQuery(filters)}`)
   return response.data
@@ -76,6 +96,16 @@ export const getTransactions = async (filters = {}) => {
 
 export const createTransaction = async (payload) => {
   const response = await apiClient.post('/budget/transactions/', payload)
+  return response.data
+}
+
+export const importTransactionsCsv = async ({ account, file }) => {
+  const formData = new FormData()
+  formData.append('account', account)
+  formData.append('file', file)
+  const response = await apiClient.post('/budget/transactions/import-csv/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
   return response.data
 }
 
@@ -110,5 +140,10 @@ export const getRecurringItems = async () => {
 
 export const createRecurringItem = async (payload) => {
   const response = await apiClient.post('/budget/recurring-items/', payload)
+  return response.data
+}
+
+export const updateRecurringItem = async (id, payload) => {
+  const response = await apiClient.patch(`/budget/recurring-items/${id}/`, payload)
   return response.data
 }

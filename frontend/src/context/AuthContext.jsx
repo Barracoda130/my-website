@@ -4,6 +4,10 @@ import { login as apiLogin, logout as apiLogout, getMe, getMyModules } from '../
 // Create the context
 const AuthContext = createContext(null)
 
+const clearSessionModuleState = () => {
+  sessionStorage.removeItem('budget_tracker_selected_month')
+}
+
 // AuthProvider wraps the whole app and provides auth state to all components
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)         // The logged-in user's data
@@ -35,6 +39,7 @@ export function AuthProvider({ children }) {
 
   // Log in: call the API, store tokens, fetch user data
   const login = useCallback(async (username, password) => {
+    clearSessionModuleState()
     const data = await apiLogin(username, password)
     localStorage.setItem('access_token', data.access)
     localStorage.setItem('refresh_token', data.refresh)
@@ -55,6 +60,7 @@ export function AuthProvider({ children }) {
     }
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
+    clearSessionModuleState()
     setUser(null)
     setModules([])
   }, [])

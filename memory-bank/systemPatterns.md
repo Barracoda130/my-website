@@ -86,11 +86,13 @@ Two components in `routes/ProtectedRoute.jsx`:
 
 ### Budget Tracker Frontend Split
 - Budget Tracker pages live in `frontend/src/pages/modules/budget/`.
-- `/budget` renders `BudgetDashboard.jsx`, a view-only dashboard for summary cards, transaction lists, budget progress, and recurring item visibility.
+- `/budget` renders `BudgetDashboard.jsx`, a view-only reports dashboard for summary cards, monthly spending trends, category breakdowns, daily spending bars, top payees, budget-vs-actual, and recurring item visibility. Full transaction access is via buttons linking to `/budget/manage?section=transactions` rather than a main dashboard ledger.
 - `/budget/manage` renders `BudgetManage.jsx`, the mutation/control area for setup, adding transactions, setting budgets, deleting transactions, and adding recurring items.
+- `/budget/manage?section=transactions` also supports Starling-style CSV transaction import. Users choose the destination account, upload a CSV, and receive inline import summary feedback.
 - `/budget/yearly` renders `BudgetYearPlanner.jsx`, a simplified spreadsheet-style rolling 12-month planner where users choose the start month/year, view categories grouped by category group, add/delete expense category groups/categories inline, plan income rows with taxed toggles, enter weekly/monthly/yearly row prices, use one global total display frequency, view an income/expense/net summary table, and save monthly-equivalent expense `Budget` allocations. Planner rows use shared grid columns ordered as name, taxed (income only), frequency, amount, actions so existing rows, new-row forms, tax rows, and subtotal rows align vertically.
 - `BudgetManage.jsx` uses query-param section navigation (`?section=transactions|budgets|setup|recurring`) so users only see one focused group of controls at a time.
 - Shared Budget Tracker loading/state logic belongs in `useBudgetData.js`; shared formatting/defaults belong in `helpers.js`.
+- Budget Tracker selected month is shared across Budget pages via `sessionStorage['budget_tracker_selected_month']` in `useBudgetData.js`; `AuthContext.jsx` clears this key on login/logout.
 - The global Dashboard module card should continue linking to `/budget`, not directly to management.
 - Monthly budget displays should clearly highlight overbudget categories using warning styling and an explicit overbudget amount.
 - Recurring item due dates should display both the stored date and relative status (`due today`, `in x days`, overdue text).
@@ -118,10 +120,12 @@ Two components in `routes/ProtectedRoute.jsx`:
 /api/budget/                   ← Budget Tracker API
 /api/budget/bootstrap-defaults/← Create starter groups/categories/account (POST)
 /api/budget/summary/           ← Monthly budget dashboard summary (GET, `?month=YYYY-MM`)
+/api/budget/reports/           ← Aggregated reports/trends (GET, `?start=YYYY-MM&end=YYYY-MM`, max 24 months)
 /api/budget/yearly-plan/       ← Rolling 12-month planner data/save (GET/POST, `?start=YYYY-MM` for GET)
 /api/budget/category-groups/   ← Category group list/create
 /api/budget/categories/        ← Category list/create
 /api/budget/accounts/          ← Account list/create
+/api/budget/transactions/import-csv/ ← Starling-style CSV transaction import (POST multipart: account + file)
 /api/budget/transactions/      ← Transaction list/create (`?month=YYYY-MM` supported)
 /api/budget/budgets/           ← Budget list/create (`?month=YYYY-MM` supported)
 /api/budget/recurring-items/   ← Recurring item list/create

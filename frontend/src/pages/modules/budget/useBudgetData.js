@@ -10,8 +10,12 @@ import {
 } from '../../../api/budget'
 import { currentMonth } from './helpers'
 
+const BUDGET_MONTH_STORAGE_KEY = 'budget_tracker_selected_month'
+
+const getInitialBudgetMonth = () => sessionStorage.getItem(BUDGET_MONTH_STORAGE_KEY) || currentMonth()
+
 export default function useBudgetData() {
-  const [month, setMonth] = useState(currentMonth())
+  const [month, setMonthState] = useState(getInitialBudgetMonth)
   const [summary, setSummary] = useState(null)
   const [groups, setGroups] = useState([])
   const [categories, setCategories] = useState([])
@@ -55,6 +59,11 @@ export default function useBudgetData() {
     }, 0)
     return () => clearTimeout(timeoutId)
   }, [loadBudgetData])
+
+  const setMonth = useCallback((value) => {
+    setMonthState(value)
+    sessionStorage.setItem(BUDGET_MONTH_STORAGE_KEY, value)
+  }, [])
 
   const hasSetup = groups.length > 0 && categories.length > 0 && accounts.length > 0
 

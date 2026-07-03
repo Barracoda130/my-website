@@ -46,6 +46,24 @@ The Budget Tracker foundation MVP has been implemented. The project now has a wo
   - Aligned planner rows/forms/subtotals to shared columns ordered as name, taxed (income only), frequency, amount, actions; added delete actions for categories and expense category groups from the planner page
   - Added Budget dashboard “Plan year” link
   - Verified `.\.venv\Scripts\python.exe backend\manage.py check`, `.\.venv\Scripts\python.exe -m pytest backend`, and `cd frontend; npm run lint; npm run build`
+- Budget Tracker CSV transaction import — 2026-06-26
+  - Added `/api/budget/transactions/import-csv/` for Starling-style CSV uploads
+  - CSV import maps signed amounts to income/expense transactions, stores positive amounts, imports payee/description/notes, and skips duplicate rows
+  - Missing categories from `Spending Category` are automatically created under `Income` or `Imported`, while existing categories are matched using normalised names such as `EATING_OUT` → `Eating Out`
+  - Added CSV import UI to `/budget/manage?section=transactions` with account selection, file upload, loading state, and inline summary feedback
+  - Added backend tests for CSV import success, duplicate skipping, missing/invalid data, cross-user account rejection, and module access enforcement
+  - Verified `cd backend; python manage.py check; pytest` and `cd frontend; npm run lint; npm run build`
+- Budget Tracker month persistence and CSV picker affordance — 2026-06-26
+  - Budget Tracker selected month is now stored in `sessionStorage` so it persists between Budget pages until logout or a fresh login clears session module state
+  - CSV import file input is now a more obvious dashed blue browse area with hover/focus styling and selected filename display
+  - Verified `cd frontend; npm run lint; npm run build`
+- Budget Tracker reports dashboard — 2026-07-03
+  - Added `/api/budget/reports/` GET endpoint accepting `start=YYYY-MM&end=YYYY-MM` for up to 24 months
+  - Reports endpoint returns monthly income/expense/net/budget trend rows, category spending totals, daily expense totals, and top payees scoped to the current user
+  - Added frontend `getBudgetReports({ start, end })`
+  - Refactored `/budget` into a graph/report-first dashboard with spending trend bars, category breakdown, daily spending mini bars, budget-vs-actual, top payees, upcoming bills, and prominent transaction buttons linking to `/budget/manage?section=transactions`
+  - Added backend tests for report permissions, current-user scoping, trend/breakdown output, and invalid ranges
+  - Verified `cd backend; python manage.py check; pytest` and `cd frontend; npm run lint; npm run build`
 
 ## Current State of the App
 ### What is complete and working
@@ -58,6 +76,8 @@ The Budget Tracker foundation MVP has been implemented. The project now has a wo
 - Django admin for managing users, invite tokens, module access, and groups
 - Budget Tracker backend models, serializers, views, URLs, admin, and migration
 - Budget Tracker frontend with view-only dashboard, separate management page, default setup, manual transactions, monthly budgets, setup forms, and recurring item list/form
+- Budget Tracker reports-focused dashboard with monthly spending trends, category breakdowns, daily spending bars, top payees, budget-vs-actual, and transaction access via management buttons
+- Budget Tracker CSV transaction import from the Transactions management section, including automatic missing-category creation
 - Budget Tracker simplified yearly planner with start month/year selection, grouped categories, inline category group/category creation/deletion, income planning rows with taxed toggles, per-row weekly/monthly/yearly prices, one global total display frequency, aligned row columns ordered name/taxed/frequency/amount/actions, summary table, and monthly-equivalent expense budget saving
 
 ### What is a stub / not yet implemented
@@ -92,9 +112,14 @@ The Budget Tracker foundation MVP has been implemented. The project now has a wo
 - Recurring item `next_due_date` is presented to users as `First payment date` when creating a new recurring item.
 - Budget Tracker backend endpoints check both JWT auth and `UserModuleAccess(module='budget_tracker')`; frontend route guards are not treated as the only security boundary.
 - Budget Tracker backend access is implemented through `budget_tracker.permissions.HasBudgetTrackerAccess`, used in view decorators via `@permission_classes([HasBudgetTrackerAccess])`.
+- Budget Tracker CSV imports currently support the provided Starling statement header format and require the user to choose the destination account because the CSV does not map to an app `Account` automatically.
+- CSV import duplicate detection is schema-free: matching existing transaction by user/account/category/type/amount/date/payee/description, rather than storing an external bank transaction ID.
+- Budget Tracker selected month is frontend session state: `useBudgetData.js` stores it under `sessionStorage['budget_tracker_selected_month']`; `AuthContext.jsx` clears it on login/logout so it survives page navigation but resets across explicit auth changes.
+- Budget Tracker reports use `/api/budget/reports/?start=YYYY-MM&end=YYYY-MM` and are limited to a 24-month range. The reports endpoint returns aggregate rows only and remains current-user scoped.
 - Django `User` is extended in `users/models.py` with `has_module_access(module_name)`, which centralises module access lookup for backend code.
 - Backend tests are run with pytest from `backend/`; `backend/pytest.ini` sets `DJANGO_SETTINGS_MODULE=config.test_settings`, which uses an in-memory SQLite dummy database so tests do not touch `backend/db.sqlite3`.
 - Budget Tracker money values use Django `DecimalField`; frontend formats values for display with `£`.
+- Budget dashboard charts are lightweight Tailwind/CSS visualisations, not a third-party charting library.
 
 ## Important Patterns & Preferences
 - UI style: clean minimal — white cards (`bg-white rounded-2xl border border-gray-200`), gray page backgrounds (`bg-gray-50`), blue primary actions (`bg-blue-600`)

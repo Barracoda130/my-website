@@ -1,3 +1,6 @@
+import csv
+import io
+import re
 from calendar import monthrange
 from datetime import date, timedelta
 from decimal import Decimal
@@ -50,8 +53,97 @@ def planning_months(start_month):
     return [add_months(start_month, index) for index in range(12)]
 
 
+def month_range(start_month, end_month):
+    months = []
+    current = start_month
+    while current <= end_month:
+        months.append(current)
+        current = add_months(current, 1)
+    return months
+
+
 def serialize_decimal(value):
     return f'{value or Decimal("0.00"):.2f}'
+
+
+STARLING_REQUIRED_HEADERS = {
+    'Date',
+    'Counter Party',
+    'Reference',
+    'Type',
+    'Amount (GBP)',
+    'Spending Category',
+    'Notes',
+}
+
+
+def normalize_import_name(value):
+    return re.sub(r'[^a-z0-9]+', '', (value or '').lower())
+
+
+def display_import_category(value, fallback):
+    cleaned = (value or '').strip()
+    if not cleaned:
+        return fallback
+    return ' '.join(part.capitalize() for part in re.split(r'[_\s]+', cleaned) if part)
+
+
+def get_import_group(user, category_type):
+    if category_type == Category.TYPE_INCOME:
+        group, _ = CategoryGroup.objects.get_or_create(
+            user=user,
+            name='Income',
+            defaults={'type': CategoryGroup.TYPE_INCOME, 'sort_order': 0},
+        )
+        return group
+
+    group, _ = CategoryGroup.objects.get_or_create(
+        user=user,
+        name='Imported',
+        defaults={'type': CategoryGroup.TYPE_EXPENSE, 'sort_order': 80},
+    )
+    return group
+
+
+def get_or_create_import_category(user, raw_name, category_type):
+    fallback = 'Other Income' if category_type == Category.TYPE_INCOME else 'Imported'
+    display_name = display_import_category(raw_name, fallback)
+    normalized_display = normalize_import_name(display_name)
+    for category in Category.objects.filter(user=user, type=category_type, is_archived=False):
+        if normalize_import_name(category.name) == normalized_display or normalize_import_name(category.name) == normalize_import_name(raw_name):
+            return category, False
+
+    group = get_import_group(user, category_type)
+    category, created = Category.objects.get_or_create(
+        user=user,
+        group=group,
+        name=display_name,
+        defaults={
+            'type': category_type,
+            'color': '#16a34a' if category_type == Category.TYPE_INCOME else '#64748b',
+            'icon': '➕' if category_type == Category.TYPE_INCOME else '📥',
+        },
+    )
+    return category, created
+
+
+def parse_starling_date(value):
+    try:
+        day, month, year = [int(part) for part in (value or '').split('/')]
+        return date(year, month, day)
+    except (TypeError, ValueError):
+        return None
+
+
+def build_import_notes(row):
+    notes = ['Imported from CSV.']
+    bank_type = (row.get('Type') or '').strip()
+    csv_notes = (row.get('Notes') or '').strip()
+    if bank_type:
+        notes.append(f'Bank type: {bank_type}.')
+    if csv_notes:
+        notes.append(f'CSV notes: {csv_notes}')
+    return ' '.join(notes)
 
 
 def create_default_setup(user):
@@ -116,6 +208,106 @@ def bootstrap_defaults(request):
     }, status=status.HTTP_201_CREATED)
 
 
+@api_view(['POST'])
+@permission_classes([HasBudgetTrackerAccess])
+def import_transactions_csv(request):
+    upload = request.FILES.get('file')
+    account_id = request.data.get('account')
+
+    if not upload:
+        return Response({'file': 'Upload a CSV file.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        account = Account.objects.get(id=account_id, user=request.user)
+    except (Account.DoesNotExist, TypeError, ValueError):
+        return Response({'account': 'Choose a valid account.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        decoded = upload.read().decode('utf-8-sig')
+    except UnicodeDecodeError:
+        return Response({'file': 'CSV file must be UTF-8 encoded.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    reader = csv.DictReader(io.StringIO(decoded))
+    headers = set(reader.fieldnames or [])
+    missing_headers = sorted(STARLING_REQUIRED_HEADERS - headers)
+    if missing_headers:
+        return Response({'file': f'Missing required CSV columns: {", ".join(missing_headers)}.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    created_transactions = []
+    created_category_ids = set()
+    skipped_duplicates = 0
+    errors = []
+
+    with db_transaction.atomic():
+        for row_number, row in enumerate(reader, start=2):
+            transaction_date = parse_starling_date(row.get('Date'))
+            if not transaction_date:
+                errors.append({'row': row_number, 'date': 'Date must use DD/MM/YYYY.'})
+                continue
+
+            try:
+                signed_amount = Decimal((row.get('Amount (GBP)') or '').strip())
+            except Exception:
+                errors.append({'row': row_number, 'amount': 'Amount must be a valid number.'})
+                continue
+
+            if signed_amount == 0:
+                errors.append({'row': row_number, 'amount': 'Amount cannot be zero.'})
+                continue
+
+            transaction_type = Transaction.TYPE_INCOME if signed_amount > 0 else Transaction.TYPE_EXPENSE
+            amount = abs(signed_amount)
+            category, category_created = get_or_create_import_category(
+                request.user,
+                row.get('Spending Category'),
+                transaction_type,
+            )
+            if category_created:
+                created_category_ids.add(category.id)
+
+            payee = (row.get('Counter Party') or '').strip()
+            reference = (row.get('Reference') or '').strip()
+            description = reference or payee or category.name
+            notes = build_import_notes(row)
+
+            duplicate_exists = Transaction.objects.filter(
+                user=request.user,
+                account=account,
+                category=category,
+                type=transaction_type,
+                amount=amount,
+                date=transaction_date,
+                payee=payee,
+                description=description,
+            ).exists()
+            if duplicate_exists:
+                skipped_duplicates += 1
+                continue
+
+            created_transactions.append(Transaction.objects.create(
+                user=request.user,
+                account=account,
+                category=category,
+                type=transaction_type,
+                amount=amount,
+                date=transaction_date,
+                description=description,
+                payee=payee,
+                notes=notes,
+            ))
+
+        if errors:
+            db_transaction.set_rollback(True)
+            return Response({'rows': errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    return Response({
+        'created_transactions': len(created_transactions),
+        'created_categories': len(created_category_ids),
+        'skipped_duplicates': skipped_duplicates,
+        'transactions': TransactionSerializer(created_transactions, many=True).data,
+    }, status=status.HTTP_201_CREATED)
+
+
 @api_view(['GET'])
 @permission_classes([HasBudgetTrackerAccess])
 def summary(request):
@@ -161,6 +353,88 @@ def summary(request):
         'category_spending': category_spending,
         'recent_transactions': TransactionSerializer(transactions.select_related('account', 'category')[:8], many=True).data,
         'upcoming_recurring_items': RecurringItemSerializer(upcoming, many=True).data,
+    })
+
+
+@api_view(['GET'])
+@permission_classes([HasBudgetTrackerAccess])
+def reports(request):
+    start_month = parse_month(request.query_params.get('start'))
+    end_month = parse_month(request.query_params.get('end'))
+    if not start_month or not end_month:
+        return Response({'detail': 'Invalid range. Use start=YYYY-MM and end=YYYY-MM.'}, status=status.HTTP_400_BAD_REQUEST)
+    if start_month > end_month:
+        return Response({'detail': 'Start month must be before or equal to end month.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    months = month_range(start_month, end_month)
+    if len(months) > 24:
+        return Response({'detail': 'Report range cannot exceed 24 months.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    range_end = month_end(end_month)
+    transactions = Transaction.objects.filter(
+        user=request.user,
+        date__gte=start_month,
+        date__lte=range_end,
+    ).select_related('category')
+    budgets = Budget.objects.filter(
+        user=request.user,
+        month__in=months,
+    ).select_related('category')
+
+    monthly_totals = []
+    for month in months:
+        finish = month_end(month)
+        month_transactions = transactions.filter(date__gte=month, date__lte=finish)
+        income_total = month_transactions.filter(type=Transaction.TYPE_INCOME).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        expense_total = month_transactions.filter(type=Transaction.TYPE_EXPENSE).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        budgeted_total = budgets.filter(month=month, category__type=Category.TYPE_EXPENSE).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        monthly_totals.append({
+            'month': month.strftime('%Y-%m'),
+            'income_total': serialize_decimal(income_total),
+            'expense_total': serialize_decimal(expense_total),
+            'net_total': serialize_decimal(income_total - expense_total),
+            'budgeted_total': serialize_decimal(budgeted_total),
+            'remaining_budget': serialize_decimal(budgeted_total - expense_total),
+        })
+
+    category_totals = []
+    category_rows = transactions.filter(type=Transaction.TYPE_EXPENSE, category__isnull=False).values(
+        'category_id',
+        'category__name',
+        'category__color',
+    ).annotate(total=Sum('amount')).order_by('-total')
+    for row in category_rows:
+        category_totals.append({
+            'category_id': row['category_id'],
+            'category_name': row['category__name'],
+            'category_color': row['category__color'],
+            'spent': serialize_decimal(row['total']),
+        })
+
+    daily_expense_totals = []
+    daily_rows = transactions.filter(type=Transaction.TYPE_EXPENSE).values('date').annotate(total=Sum('amount')).order_by('date')
+    for row in daily_rows:
+        daily_expense_totals.append({
+            'date': row['date'].isoformat(),
+            'spent': serialize_decimal(row['total']),
+        })
+
+    payee_totals = []
+    payee_rows = transactions.filter(type=Transaction.TYPE_EXPENSE).exclude(payee='').values('payee').annotate(total=Sum('amount')).order_by('-total')[:5]
+    for row in payee_rows:
+        payee_totals.append({
+            'payee': row['payee'],
+            'spent': serialize_decimal(row['total']),
+        })
+
+    return Response({
+        'start': start_month.strftime('%Y-%m'),
+        'end': end_month.strftime('%Y-%m'),
+        'months': [month.strftime('%Y-%m') for month in months],
+        'monthly_totals': monthly_totals,
+        'category_totals': category_totals,
+        'daily_expense_totals': daily_expense_totals,
+        'top_payees': payee_totals,
     })
 
 

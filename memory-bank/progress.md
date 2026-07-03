@@ -62,6 +62,13 @@
 - ✅ Yearly planner saves only monthly-equivalent category budget allocations to the existing `Budget` table
 - ✅ Backend yearly-plan security tests added; `cd backend; python manage.py check; pytest` passes with 17 tests
 - ✅ Frontend `npm run lint` and `npm run build` pass after yearly planner implementation
+- ✅ Budget Tracker Starling-style CSV import added at `/api/budget/transactions/import-csv/`
+- ✅ Budget Manage Transactions section now supports CSV upload with account selection and inline import summary
+- ✅ CSV import creates transactions from signed CSV amounts, reuses matching categories, creates missing categories automatically, and skips duplicate rows
+- ✅ Backend CSV import tests added; `cd backend; python manage.py check; pytest` passes with 21 tests
+- ✅ Frontend `npm run lint` and `npm run build` pass after CSV import implementation
+- ✅ Budget Tracker month selection persists across Budget page navigation using session storage until logout or a fresh login
+- ✅ CSV import file picker has clearer hover/focus/click affordance and displays the selected filename
 
 ## What's Left to Build
 
@@ -80,7 +87,8 @@
 - [ ] Edit UI for existing records
 - [ ] Better field-level validation display
 - [ ] Delete confirmations
-- [ ] CSV import/export
+- [x] CSV import
+- [ ] CSV export
 - [ ] Transaction splitting
 - [ ] Calendar view
 - [ ] Savings goals/sinking funds
@@ -103,7 +111,7 @@
 - [ ] Consider moving JWT tokens from `localStorage` to httpOnly cookies
 
 ## Current Status
-**Phase**: Core scaffolding complete. Budget Tracker foundation MVP plus rolling yearly planner implemented. Ready for further Budget Tracker polish or Family Finances implementation.
+**Phase**: Core scaffolding complete. Budget Tracker foundation MVP plus rolling yearly planner and CSV transaction import implemented. Ready for further Budget Tracker polish or Family Finances implementation.
 
 ## Known Issues / Notes
 - `SECRET_KEY` in `settings.py` is a placeholder — must be changed before any production deployment
@@ -118,6 +126,9 @@
 - The yearly planner's UK income tax estimate is planning-only and currently covers income tax bands/allowance, not National Insurance, pension, student loan, or benefits calculations
 - Yearly planner category frequency choices are currently UI-only; persisted budget output is monthly-equivalent `Budget` rows
 - Yearly planner income amounts and taxed toggles are currently planning-only; newly added income categories are persisted, but their planner amounts are not persisted after reload
+- CSV import currently targets the provided Starling-style CSV headers. Supporting other banks would likely need either bank-specific parsers or a mapping UI.
+- CSV import duplicate skipping uses existing transaction fields as a heuristic because no external transaction ID is stored yet.
+- Budget Tracker selected month persists only for the current browser session/auth session via `sessionStorage`, not permanently across browser restarts.
 
 ## Evolution of Decisions
 - **2026-06-22**: Project scaffolded with full auth system and module access control. Memory Bank initialised.
@@ -126,3 +137,5 @@
 - **2026-06-23**: Split Budget Tracker frontend so `/budget` is view-only and `/budget/manage` contains focused add/edit/setup workflows under `frontend/src/pages/modules/budget/`.
 - **2026-06-23**: Added Budget Tracker UX polish for overbudget warnings, relative recurring due dates, clearer recurring item form labels/frequency, and inline success feedback.
 - **2026-06-23/24**: Added and simplified yearly budget planner at `/budget/yearly`, backed by `/api/budget/yearly-plan/`, reusing existing monthly `Budget` rows as the persisted source of truth while presenting a spreadsheet-style grouped category planner.
+- **2026-06-26**: Added Starling-style CSV transaction import from `/budget/manage?section=transactions`, backed by `/api/budget/transactions/import-csv/`, including automatic missing-category creation and duplicate-row skipping.
+- **2026-06-26**: Improved Budget Tracker UX by persisting the selected month across Budget page navigation and making the CSV file picker visually obvious on hover/focus/click.

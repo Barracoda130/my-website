@@ -5,6 +5,7 @@ from . import views
 urlpatterns = [
     path('bootstrap-defaults/', views.bootstrap_defaults),
     path('summary/', views.summary),
+    path('reports/', views.reports),
     path('yearly-plan/', views.yearly_plan),
     path('category-groups/', views.category_groups),
     path('category-groups/<int:pk>/', views.category_group_detail),
@@ -12,6 +13,7 @@ urlpatterns = [
     path('categories/<int:pk>/', views.category_detail),
     path('accounts/', views.accounts),
     path('accounts/<int:pk>/', views.account_detail),
+    path('transactions/import-csv/', views.import_transactions_csv),
     path('transactions/', views.transactions),
     path('transactions/<int:pk>/', views.transaction_detail),
     path('budgets/', views.budgets),

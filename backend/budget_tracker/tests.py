@@ -2,12 +2,17 @@ from datetime import date
 from decimal import Decimal
 
 from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from users.models import UserModuleAccess
 
 from .models import Account, Budget, Category, CategoryGroup, RecurringItem, Transaction
+
+
+def csv_upload(content, name='statement.csv'):
+    return SimpleUploadedFile(name, content.encode('utf-8'), content_type='text/csv')
 
 
 class BudgetTrackerSecurityTests(APITestCase):
@@ -82,9 +87,11 @@ class BudgetTrackerSecurityTests(APITestCase):
     def test_budget_endpoints_reject_unauthenticated_users(self):
         endpoints = [
             ('get', '/api/budget/summary/'),
+            ('get', '/api/budget/reports/?start=2026-01&end=2026-06'),
             ('get', '/api/budget/yearly-plan/?start=2026-06'),
             ('post', '/api/budget/yearly-plan/'),
             ('post', '/api/budget/bootstrap-defaults/'),
+            ('post', '/api/budget/transactions/import-csv/'),
             ('get', '/api/budget/category-groups/'),
             ('get', '/api/budget/categories/'),
             ('get', '/api/budget/accounts/'),
@@ -103,9 +110,11 @@ class BudgetTrackerSecurityTests(APITestCase):
 
         endpoints = [
             ('get', '/api/budget/summary/'),
+            ('get', '/api/budget/reports/?start=2026-01&end=2026-06'),
             ('get', '/api/budget/yearly-plan/?start=2026-06'),
             ('post', '/api/budget/yearly-plan/'),
             ('post', '/api/budget/bootstrap-defaults/'),
+            ('post', '/api/budget/transactions/import-csv/'),
             ('get', '/api/budget/category-groups/'),
             ('get', '/api/budget/categories/'),
             ('get', '/api/budget/accounts/'),
@@ -124,6 +133,7 @@ class BudgetTrackerSecurityTests(APITestCase):
 
         endpoints = [
             ('get', '/api/budget/summary/?month=2026-06'),
+            ('get', '/api/budget/reports/?start=2026-01&end=2026-06'),
             ('get', '/api/budget/yearly-plan/?start=2026-06'),
             ('get', '/api/budget/category-groups/'),
             ('get', '/api/budget/categories/'),
@@ -323,6 +333,114 @@ class BudgetTrackerSecurityTests(APITestCase):
                 response = self.client.post('/api/budget/recurring-items/', payload, format='json')
                 self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_import_transactions_csv_creates_transactions_and_missing_categories(self):
+        self._authenticate(self.owner)
+        food_group = CategoryGroup.objects.create(user=self.owner, name='Food', type=CategoryGroup.TYPE_EXPENSE)
+        groceries = Category.objects.create(user=self.owner, group=food_group, name='Groceries', type=Category.TYPE_EXPENSE)
+
+        content = (
+            'Date,Counter Party,Reference,Type,Amount (GBP),Balance (GBP),Spending Category,Notes\n'
+            '30/04/2026,Luke Compton-Burnett,HEHE,FASTER PAYMENT,3000.00,3586.43,INCOME,\n'
+            '09/05/2026,Tesco,TESCO STORES  6584,GOOGLE PAY,-10.00,3464.84,GROCERIES,Clubcard\n'
+            '04/05/2026,Harmony Le,Paintballing,FASTER PAYMENT,-31.16,3555.27,PAYMENTS,\n'
+        )
+
+        response = self.client.post('/api/budget/transactions/import-csv/', {
+            'account': self.owner_data['account'].id,
+            'file': csv_upload(content),
+        }, format='multipart')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['created_transactions'], 3)
+        self.assertEqual(response.data['created_categories'], 2)
+        self.assertEqual(Transaction.objects.filter(user=self.owner, account=self.owner_data['account']).count(), 4)
+
+        salary = Transaction.objects.get(user=self.owner, description='HEHE')
+        self.assertEqual(salary.type, Transaction.TYPE_INCOME)
+        self.assertEqual(salary.amount, Decimal('3000.00'))
+        self.assertEqual(salary.date, date(2026, 4, 30))
+        self.assertEqual(salary.payee, 'Luke Compton-Burnett')
+        self.assertEqual(salary.category.name, 'Income')
+
+        tesco = Transaction.objects.get(user=self.owner, payee='Tesco')
+        self.assertEqual(tesco.type, Transaction.TYPE_EXPENSE)
+        self.assertEqual(tesco.amount, Decimal('10.00'))
+        self.assertEqual(tesco.category, groceries)
+        self.assertIn('Bank type: GOOGLE PAY.', tesco.notes)
+        self.assertIn('CSV notes: Clubcard', tesco.notes)
+
+        payments = Category.objects.get(user=self.owner, name='Payments')
+        self.assertEqual(payments.type, Category.TYPE_EXPENSE)
+        self.assertEqual(payments.group.name, 'Imported')
+
+    def test_import_transactions_csv_skips_duplicate_rows(self):
+        self._authenticate(self.owner)
+        group = CategoryGroup.objects.create(user=self.owner, name='Food', type=CategoryGroup.TYPE_EXPENSE)
+        category = Category.objects.create(user=self.owner, group=group, name='Groceries', type=Category.TYPE_EXPENSE)
+        Transaction.objects.create(
+            user=self.owner,
+            account=self.owner_data['account'],
+            category=category,
+            type=Transaction.TYPE_EXPENSE,
+            amount=Decimal('10.00'),
+            date=date(2026, 5, 9),
+            description='TESCO STORES  6584',
+            payee='Tesco',
+        )
+        content = (
+            'Date,Counter Party,Reference,Type,Amount (GBP),Balance (GBP),Spending Category,Notes\n'
+            '09/05/2026,Tesco,TESCO STORES  6584,GOOGLE PAY,-10.00,3464.84,GROCERIES,\n'
+        )
+
+        response = self.client.post('/api/budget/transactions/import-csv/', {
+            'account': self.owner_data['account'].id,
+            'file': csv_upload(content),
+        }, format='multipart')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['created_transactions'], 0)
+        self.assertEqual(response.data['skipped_duplicates'], 1)
+
+    def test_import_transactions_csv_rejects_cross_user_account(self):
+        self._authenticate(self.owner)
+        content = (
+            'Date,Counter Party,Reference,Type,Amount (GBP),Balance (GBP),Spending Category,Notes\n'
+            '09/05/2026,Tesco,TESCO STORES  6584,GOOGLE PAY,-10.00,3464.84,GROCERIES,\n'
+        )
+
+        response = self.client.post('/api/budget/transactions/import-csv/', {
+            'account': self.other_data['account'].id,
+            'file': csv_upload(content),
+        }, format='multipart')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(Transaction.objects.filter(user=self.owner, payee='Tesco').exists())
+
+    def test_import_transactions_csv_rejects_missing_headers_and_invalid_rows(self):
+        self._authenticate(self.owner)
+        missing_headers = 'Date,Amount (GBP)\n09/05/2026,-10.00\n'
+
+        missing_response = self.client.post('/api/budget/transactions/import-csv/', {
+            'account': self.owner_data['account'].id,
+            'file': csv_upload(missing_headers),
+        }, format='multipart')
+
+        self.assertEqual(missing_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('Missing required CSV columns', missing_response.data['file'])
+
+        invalid_row = (
+            'Date,Counter Party,Reference,Type,Amount (GBP),Balance (GBP),Spending Category,Notes\n'
+            '2026-05-09,Tesco,TESCO STORES  6584,GOOGLE PAY,not-money,3464.84,GROCERIES,\n'
+        )
+        invalid_response = self.client.post('/api/budget/transactions/import-csv/', {
+            'account': self.owner_data['account'].id,
+            'file': csv_upload(invalid_row),
+        }, format='multipart')
+
+        self.assertEqual(invalid_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(invalid_response.data['rows'][0]['row'], 2)
+        self.assertFalse(Transaction.objects.filter(user=self.owner, payee='Tesco').exists())
+
     def test_summary_only_uses_current_users_transactions_budgets_and_recurring_items(self):
         self._authenticate(self.owner)
 
@@ -342,3 +460,78 @@ class BudgetTrackerSecurityTests(APITestCase):
         self.assertNotIn(self.other_data['recurring_item'].id, upcoming_recurring_item_ids)
         self.assertIn(self.owner_data['expense_category'].id, category_spending_category_ids)
         self.assertNotIn(self.other_data['expense_category'].id, category_spending_category_ids)
+
+    def test_reports_return_current_users_monthly_trends_and_breakdowns(self):
+        self._authenticate(self.owner)
+        food_group = CategoryGroup.objects.create(user=self.owner, name='Owner Food', type=CategoryGroup.TYPE_EXPENSE)
+        groceries = Category.objects.create(user=self.owner, group=food_group, name='Groceries', type=Category.TYPE_EXPENSE, color='#f97316')
+
+        Transaction.objects.create(
+            user=self.owner,
+            account=self.owner_data['account'],
+            category=self.owner_data['income_category'],
+            type=Transaction.TYPE_INCOME,
+            amount=Decimal('2000.00'),
+            date=date(2026, 5, 25),
+            description='Salary',
+            payee='Employer',
+        )
+        Transaction.objects.create(
+            user=self.owner,
+            account=self.owner_data['account'],
+            category=groceries,
+            type=Transaction.TYPE_EXPENSE,
+            amount=Decimal('40.00'),
+            date=date(2026, 5, 10),
+            description='Groceries',
+            payee='Tesco',
+        )
+        Transaction.objects.create(
+            user=self.other_user,
+            account=self.other_data['account'],
+            category=self.other_data['expense_category'],
+            type=Transaction.TYPE_EXPENSE,
+            amount=Decimal('999.00'),
+            date=date(2026, 5, 10),
+            description='Other hidden spend',
+            payee='Other Payee',
+        )
+        Budget.objects.create(
+            user=self.owner,
+            category=groceries,
+            month=date(2026, 5, 1),
+            amount=Decimal('150.00'),
+        )
+
+        response = self.client.get('/api/budget/reports/?start=2026-05&end=2026-06')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['months'], ['2026-05', '2026-06'])
+        may = response.data['monthly_totals'][0]
+        june = response.data['monthly_totals'][1]
+        self.assertEqual(may['income_total'], '2000.00')
+        self.assertEqual(may['expense_total'], '40.00')
+        self.assertEqual(may['budgeted_total'], '150.00')
+        self.assertEqual(june['expense_total'], '25.00')
+
+        category_names = {item['category_name'] for item in response.data['category_totals']}
+        payee_names = {item['payee'] for item in response.data['top_payees']}
+        daily_dates = {item['date'] for item in response.data['daily_expense_totals']}
+
+        self.assertIn('Groceries', category_names)
+        self.assertIn('Owner Rent', category_names)
+        self.assertNotIn('Other Rent', category_names)
+        self.assertIn('Tesco', payee_names)
+        self.assertNotIn('Other Payee', payee_names)
+        self.assertIn('2026-05-10', daily_dates)
+
+    def test_reports_reject_invalid_or_too_large_ranges(self):
+        self._authenticate(self.owner)
+
+        invalid_range = self.client.get('/api/budget/reports/?start=2026-07&end=2026-06')
+        invalid_month = self.client.get('/api/budget/reports/?start=not-a-month&end=2026-06')
+        too_large = self.client.get('/api/budget/reports/?start=2024-01&end=2026-06')
+
+        self.assertEqual(invalid_range.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(invalid_month.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(too_large.status_code, status.HTTP_400_BAD_REQUEST)
