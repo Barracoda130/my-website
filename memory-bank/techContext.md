@@ -30,6 +30,8 @@
 | Tailwind CSS | ^4.3.1 | Utility-first CSS (via `@tailwindcss/vite` plugin) |
 | @vitejs/plugin-react | ^6.0.1 | React fast refresh in Vite |
 
+Vite 8 requires Node `20.19+` or `22.12+`; Railway frontend builds are pinned to Node `22.12.0` using `frontend/nixpacks.toml` and `frontend/package.json` engines.
+
 ## Development Setup
 
 ### Running the Backend
