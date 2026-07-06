@@ -1,12 +1,11 @@
 from django.urls import path
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from . import views
 
 urlpatterns = [
     # JWT login (returns access + refresh tokens)
-    path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('login/', views.ThrottledTokenObtainPairView.as_view(), name='token_obtain_pair'),
     # Refresh an expired access token using the refresh token
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('token/refresh/', views.ThrottledTokenRefreshView.as_view(), name='token_refresh'),
     # Invite-only registration
     path('invite/validate/', views.validate_invite, name='validate_invite'),
     path('register/', views.register, name='register'),

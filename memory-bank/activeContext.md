@@ -92,6 +92,15 @@ The Budget Tracker foundation MVP has been implemented. The project now has a wo
   - Added frontend helpers `activateChild`, `deactivateChild`, and `deleteChild`
   - Updated `/family/children` so inactive children show an “Activate” button, active children show “Deactivate”, and all children have a separate “Delete” action with confirmation
   - Verified Family Finance tests, full backend pytest suite, frontend lint, and frontend production build pass
+- Railway deployment hardening — 2026-07-06
+  - Prepared Option A deployment: separate Railway backend service, frontend service, and managed PostgreSQL database
+  - Backend settings now read `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, and `DATABASE_URL` from environment variables
+  - Added PostgreSQL support via `dj-database-url` and `psycopg`, Gunicorn for Railway runtime, and WhiteNoise/staticfiles configuration for Django admin assets
+  - Added production security defaults for HTTPS proxying, SSL redirects, secure cookies, HSTS, content type nosniff, frame denial, and referrer policy when `DEBUG=False`
+  - Added DRF throttling defaults plus login, token refresh, invite validation, and registration scoped throttles
+  - Frontend API base URL now uses `VITE_API_BASE_URL` with local fallback
+  - Added backend/frontend Railway config files, `.env.example` files, and `RAILWAY_DEPLOYMENT.md`
+  - Verified `cd backend; python manage.py check; pytest` and `cd frontend; npm run lint; npm run build`
 
 ## Current State of the App
 ### What is complete and working
@@ -129,11 +138,11 @@ The Budget Tracker foundation MVP has been implemented. The project now has a wo
    - Add child detail route/page with trends and category breakdowns
    - Add full transaction filter UI for child/date/type/category/fairness/recurring/large expense
    - Add frontend family admin flow for creating families/codes if desired
-3. Production hardening (when ready to deploy):
-   - Move `SECRET_KEY` to environment variable
-   - Switch `DEBUG = False`
-   - Replace SQLite with PostgreSQL
-   - Move tokens from `localStorage` to httpOnly cookies (optional security improvement)
+3. Production hardening follow-ups:
+   - Deploy Option A on Railway using separate backend/frontend services plus Railway Postgres
+   - Set real Railway environment variables from `RAILWAY_DEPLOYMENT.md`
+   - Create a production superuser and invite tokens after first deploy
+   - Move tokens from `localStorage` to httpOnly cookies later if a higher security posture is desired
 
 ## Active Decisions & Considerations
 - Module slugs (`budget_tracker`, `family_finances`) are the single source of truth — they must match exactly between `AVAILABLE_MODULES` (backend), `MODULE_INFO` (frontend Dashboard), and `ModuleRoute moduleSlug` props

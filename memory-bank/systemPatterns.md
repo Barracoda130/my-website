@@ -29,6 +29,16 @@ backend/           ← Django project
 - Access token: 60 minutes; Refresh token: 7 days with rotation
 - `BLACKLIST_AFTER_ROTATION = True` — old refresh tokens are invalidated on each refresh
 - Tokens stored in `localStorage` (not httpOnly cookies) — acceptable for personal/trusted-user app
+- Login and token refresh views are wrapped by `users.views.ThrottledTokenObtainPairView` and `ThrottledTokenRefreshView`, using DRF scoped throttles (`login`, `token_refresh`) configured in `REST_FRAMEWORK['DEFAULT_THROTTLE_RATES']`.
+- Invite validation and registration use IP-based scoped throttles (`invite_validate`, `register`) through local throttle classes in `users/views.py`.
+
+### Railway Production Deployment
+- Preferred production deployment is Option A: separate Railway backend service (`backend/`), frontend service (`frontend/`), and Railway managed PostgreSQL.
+- Backend reads production settings from environment variables: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, and `DATABASE_URL`.
+- `DATABASE_URL` enables PostgreSQL via `dj-database-url`; without it local development falls back to SQLite.
+- WhiteNoise serves Django static/admin assets from `STATIC_ROOT`; Gunicorn runs `config.wsgi:application` in Railway.
+- Production security settings are enabled when `DEBUG=False`, including SSL redirect, secure cookies, HSTS, content type nosniffing, frame denial, and proxy SSL header handling.
+- Frontend API calls use `VITE_API_BASE_URL` with a local development fallback.
 
 ### Invite-Only Registration
 - `InviteToken` model: UUID token, single-use, optional expiry

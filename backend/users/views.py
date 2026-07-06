@@ -1,9 +1,11 @@
 from typing import cast
 from django.contrib.auth.models import User
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import SimpleRateThrottle
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import UserModuleAccess, UserGroup
@@ -16,8 +18,39 @@ from .serializers import (
 )
 
 
+class ThrottledTokenObtainPairView(TokenObtainPairView):
+    throttle_scope = 'login'
+
+
+class ThrottledTokenRefreshView(TokenRefreshView):
+    throttle_scope = 'token_refresh'
+
+
+class ScopedIPRateThrottle(SimpleRateThrottle):
+    """Apply a named throttle scope to unauthenticated public endpoints by IP."""
+
+    scope = None
+
+    def get_cache_key(self, request, view):
+        if self.scope is None:
+            return None
+        return self.cache_format % {
+            'scope': self.scope,
+            'ident': self.get_ident(request),
+        }
+
+
+class InviteValidateRateThrottle(ScopedIPRateThrottle):
+    scope = 'invite_validate'
+
+
+class RegisterRateThrottle(ScopedIPRateThrottle):
+    scope = 'register'
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([InviteValidateRateThrottle])
 def validate_invite(request):
     """
     Check whether an invite token is valid before showing the registration form.
@@ -32,6 +65,7 @@ def validate_invite(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([RegisterRateThrottle])
 def register(request):
     """
     Register a new user using a valid invite token.

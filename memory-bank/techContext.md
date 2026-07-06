@@ -10,9 +10,14 @@
 | Django REST Framework | >=3.15 | REST API |
 | djangorestframework-simplejwt | >=5.5 | JWT auth + token blacklisting |
 | django-cors-headers | >=4.6 | CORS for frontend dev server |
+| dj-database-url | >=2.3 | Parse Railway/Postgres `DATABASE_URL` |
+| psycopg[binary] | >=3.2 | PostgreSQL database driver |
+| gunicorn | >=23.0 | Production WSGI server on Railway |
+| whitenoise | >=6.8 | Static/admin asset serving for Django |
 | pytest | >=8.0 | Backend test runner |
 | pytest-django | >=4.8 | Django integration for pytest |
-| SQLite | built-in | Database (development) |
+| SQLite | built-in | Database fallback for local development |
+| PostgreSQL | Railway managed | Production database |
 
 ### Frontend
 | Technology | Version | Purpose |
@@ -118,11 +123,12 @@ my-website/
 ```
 
 ## Configuration Notes
-- **API base URL**: hardcoded as `http://localhost:8000/api` in `frontend/src/api/client.js` and `auth.js`
-- **CORS**: frontend origin `http://localhost:5173` is whitelisted in Django settings
+- **API base URL**: `frontend/src/api/client.js` exports `API_BASE_URL` from `VITE_API_BASE_URL`, falling back to `http://localhost:8000/api` for local development
+- **CORS**: local Vite origins are whitelisted only when `DEBUG=True`; production origins come from `CORS_ALLOWED_ORIGINS`
 - **JWT tokens**: stored in `localStorage` under keys `access_token` and `refresh_token`
 - **Time zone**: `Europe/London` (set in Django settings)
-- **Secret key**: currently uses insecure placeholder — must be replaced with env variable for production
+- **Secret key**: read from `SECRET_KEY` env var; local fallback remains only for development
+- **Railway deployment**: see `RAILWAY_DEPLOYMENT.md`; backend uses `DATABASE_URL` for Railway Postgres and frontend uses `VITE_API_BASE_URL`
 
 ## Family Planner Setup Notes
 - Create families in Django admin under **Family Finances → Families**, then share the family `code` with invited users.

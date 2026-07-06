@@ -69,6 +69,14 @@
 - ✅ Frontend `npm run lint` and `npm run build` pass after CSV import implementation
 - ✅ Budget Tracker month selection persists across Budget page navigation using session storage until logout or a fresh login
 - ✅ CSV import file picker has clearer hover/focus/click affordance and displays the selected filename
+- ✅ Railway Option A deployment prep: separate backend/frontend service config plus Railway Postgres support
+- ✅ Backend production settings are environment-driven and support PostgreSQL via `DATABASE_URL`
+- ✅ Backend static/admin assets are configured with WhiteNoise and `STATIC_ROOT`
+- ✅ Backend runtime dependencies include Gunicorn, WhiteNoise, psycopg, and dj-database-url
+- ✅ Production security defaults are configured for `DEBUG=False`
+- ✅ Login, token refresh, invite validation, and registration endpoints have rate limiting/throttling
+- ✅ Frontend API base URL is configurable via `VITE_API_BASE_URL`
+- ✅ Railway deployment documentation and env examples are added
 
 ## What's Left to Build
 
@@ -109,20 +117,23 @@
 - [ ] Frontend family creation/code management flow
 
 ### Production Readiness
-- [ ] Move `SECRET_KEY` to environment variable (`.env` file)
-- [ ] Set `DEBUG = False` for production
-- [ ] Configure `ALLOWED_HOSTS` for production domain
-- [ ] Switch from SQLite to PostgreSQL
-- [ ] Set up static file serving (WhiteNoise or CDN)
-- [ ] Add `STATIC_ROOT` and run `collectstatic`
+- [x] Move `SECRET_KEY` to environment variable (`.env` file)
+- [x] Set `DEBUG = False` for production via environment variable
+- [x] Configure `ALLOWED_HOSTS` for production domain via environment variable
+- [x] Switch from SQLite to PostgreSQL in production via `DATABASE_URL`
+- [x] Set up static file serving with WhiteNoise
+- [x] Add `STATIC_ROOT` and `collectstatic` deployment command
+- [x] Add Railway backend/frontend service config and deployment guide
+- [x] Add login/public auth rate limiting
 - [ ] Consider moving JWT tokens from `localStorage` to httpOnly cookies
+- [ ] Deploy services on Railway and set real production environment variables
 
 ## Current Status
 **Phase**: Core scaffolding complete. Budget Tracker is feature-rich, and Family Planner / Family Fairness Ledger MVP is implemented with family-code onboarding, split-aware fairness calculations, recurring support, and basic frontend pages.
 
-Latest update: Family Planner children can now be activated/deactivated and permanently deleted; full backend test suite passes and frontend lint/build passes.
-- `SECRET_KEY` in `settings.py` is a placeholder — must be changed before any production deployment
-- API base URL is hardcoded in two places (`client.js` and `auth.js`) — consider extracting to a shared constant or environment variable
+Latest update: Railway Option A deployment prep is implemented for separate backend/frontend services and Railway Postgres; full backend test suite passes and frontend lint/build passes.
+- `SECRET_KEY` is environment-driven; Railway must provide a real strong secret before production deployment
+- API base URL is environment-driven via `VITE_API_BASE_URL`
 - Backend security tests now exist for the implemented auth/Budget Tracker areas; broader feature/regression tests are still needed as modules grow
 - `db.sqlite3` is present in the repo root of `backend/` — ensure it stays gitignored
 - Budget Tracker MVP currently has create/delete flows but limited edit functionality in the UI
@@ -146,3 +157,4 @@ Latest update: Family Planner children can now be activated/deactivated and perm
 - **2026-06-23/24**: Added and simplified yearly budget planner at `/budget/yearly`, backed by `/api/budget/yearly-plan/`, reusing existing monthly `Budget` rows as the persisted source of truth while presenting a spreadsheet-style grouped category planner.
 - **2026-06-26**: Added Starling-style CSV transaction import from `/budget/manage?section=transactions`, backed by `/api/budget/transactions/import-csv/`, including automatic missing-category creation and duplicate-row skipping.
 - **2026-06-26**: Improved Budget Tracker UX by persisting the selected month across Budget page navigation and making the CSV file picker visually obvious on hover/focus/click.
+- **2026-07-06**: Prepared Railway Option A deployment with separate backend/frontend services, Railway PostgreSQL via `DATABASE_URL`, env-driven production settings, WhiteNoise/Gunicorn runtime support, DRF auth throttling, `VITE_API_BASE_URL`, Railway config files, env examples, and deployment documentation.

@@ -1,7 +1,6 @@
 import apiClient from './client'
 import axios from 'axios'
-
-const API_BASE_URL = 'http://localhost:8000/api'
+import { API_BASE_URL } from './client'
 
 // Log in with username + password. Returns access + refresh tokens.
 export const login = async (username, password) => {
