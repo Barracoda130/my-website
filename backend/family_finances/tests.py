@@ -24,7 +24,7 @@ class FamilyFinanceServiceTests(APITestCase):
             amount=Decimal(amount),
             type=kwargs.pop('type', FamilyTransaction.TYPE_ONE_OFF),
             category=kwargs.pop('category', FamilyTransaction.CATEGORY_OTHER),
-            paid_by=FamilyTransaction.PAID_BY_BOTH,
+            paid_by=kwargs.pop('paid_by', FamilyTransaction.PAID_BY_BOTH),
             split_between_children=len(children) > 1,
             **kwargs,
         )
@@ -81,3 +81,19 @@ class FamilyFinanceServiceTests(APITestCase):
         self.assertEqual(len(first), 3)
         self.assertEqual(len(second), 0)
         self.assertEqual(FamilyTransaction.objects.filter(generated_from=tx).count(), 3)
+
+    def test_child_paid_personal_transactions_are_not_counted_for_fairness(self):
+        self.create_transaction(
+            'Child bought a game',
+            '18.00',
+            [self.alex],
+            type=FamilyTransaction.TYPE_CHILD_PAID,
+            paid_by=FamilyTransaction.PAID_BY_CHILD,
+            counts_toward_fairness=False,
+        )
+
+        summary = build_fairness_summary(self.family, today=date(2026, 6, 1))
+        alex_row = next(row for row in summary['children'] if row['child_id'] == self.alex.id)
+
+        self.assertEqual(alex_row['counted_total'], Decimal('0.00'))
+        self.assertEqual(alex_row['excluded_total'], Decimal('18.00'))

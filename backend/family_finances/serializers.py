@@ -61,6 +61,14 @@ class FamilyTransactionSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         recurring = attrs.get('recurring', getattr(self.instance, 'recurring', False))
         frequency = attrs.get('recurring_frequency', getattr(self.instance, 'recurring_frequency', FamilyTransaction.FREQUENCY_NONE))
+        transaction_type = attrs.get('type', getattr(self.instance, 'type', None))
+        if transaction_type == FamilyTransaction.TYPE_CHILD_PAID:
+            attrs['counts_toward_fairness'] = False
+            attrs['paid_by'] = FamilyTransaction.PAID_BY_CHILD
+            attrs['recurring'] = False
+            attrs['recurring_frequency'] = FamilyTransaction.FREQUENCY_NONE
+            attrs['recurring_start_date'] = None
+            attrs['recurring_end_date'] = None
         if recurring and frequency == FamilyTransaction.FREQUENCY_NONE:
             raise serializers.ValidationError({'recurring_frequency': 'Choose a recurring frequency.'})
         if not recurring:

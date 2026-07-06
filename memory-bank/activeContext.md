@@ -78,6 +78,20 @@ The Budget Tracker foundation MVP has been implemented. The project now has a wo
   - Added Family Planner pages under `frontend/src/pages/modules/family/`: dashboard, children, transactions, fairness, layout, helpers
   - Updated registration UI with optional family code field
   - Verified `cd backend; python manage.py check; pytest` passes with 26 tests and `cd frontend; npm run lint; npm run build` passes
+- Family Planner child-paid personal transactions — 2026-07-03
+  - Added `Child-paid personal transaction` type and `Child` paid-by option to `FamilyTransaction`
+  - Added migration `family_finances.0002_alter_familytransaction_paid_by_and_more`
+  - Serializer now forces child-paid transactions to `counts_toward_fairness=False`, `paid_by='child'`, and non-recurring
+  - Added `child_paid=true` transaction API filter
+  - Added frontend API helper `getChildPaidTransactions()`
+  - Added `/family/child-paid` page for adding and viewing child-paid personal transactions separately from parent support
+  - Added Family Planner nav item “Child-paid”
+  - Verified `cd backend; ..\.venv\Scripts\python.exe manage.py check; ..\.venv\Scripts\python.exe -m pytest` passes with 27 tests and `cd frontend; npm run lint; npm run build` passes
+- Family Planner child activate/delete controls — 2026-07-03
+  - Updated the children API so `DELETE /api/family/children/<id>/` permanently deletes a child instead of deactivating it
+  - Added frontend helpers `activateChild`, `deactivateChild`, and `deleteChild`
+  - Updated `/family/children` so inactive children show an “Activate” button, active children show “Deactivate”, and all children have a separate “Delete” action with confirmation
+  - Verified Family Finance tests, full backend pytest suite, frontend lint, and frontend production build pass
 
 ## Current State of the App
 ### What is complete and working
@@ -90,7 +104,9 @@ The Budget Tracker foundation MVP has been implemented. The project now has a wo
 - Family Planner / Family Fairness Ledger MVP in `family_finances`
   - Family-code onboarding at registration
   - Family-scoped children and transactions
+  - Child activation/deactivation and permanent delete controls
   - Transaction splitting across children
+  - Child-paid personal transactions, visible separately and excluded from fairness calculations
   - Fairness dashboard calculations using split amounts and excluding non-fairness transactions where appropriate
   - Basic recurring transaction generation
 - Django admin for managing users, invite tokens, module access, and groups
@@ -126,6 +142,8 @@ The Budget Tracker foundation MVP has been implemented. The project now has a wo
 - Entering a valid family code during registration grants `family_finances` module access automatically. No family code means normal registration without Family Planner access.
 - Family Planner transaction totals must use `TransactionChildSplit.amount`, never assume the parent transaction belongs to one child.
 - Fairness calculations should exclude `counts_toward_fairness=False` from counted totals/averages/gaps but still show excluded support separately.
+- Child-paid personal transactions are informational only. They use `FamilyTransaction.TYPE_CHILD_PAID`, are forced to `paid_by='child'`, `counts_toward_fairness=False`, and non-recurring by the serializer.
+- Child deactivation is a soft status toggle via PATCH `active=false`; child deletion is a permanent DELETE and cascades linked transaction splits.
 - Recurring Family Planner transactions are template transactions with `recurring=True`; generated instances use `generated_from` and `recurring=False` to avoid duplicate generation.
 - The `UserGroup` model is already in place for Family Finances shared data — use it when building that module
 - Tailwind CSS v4 is used via the `@tailwindcss/vite` plugin (not the PostCSS plugin) — no `tailwind.config.js` file needed

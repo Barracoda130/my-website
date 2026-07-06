@@ -70,8 +70,10 @@ backend/           ← Django project
   - `TransactionChildSplit` — per-child amount/percentage for every transaction
 - All transactions are split-first. A transaction for one child is represented as one split with 100%; shared expenses have multiple split rows.
 - Fairness calculations live in `backend/family_finances/services/fairness.py` and use split amounts. Transactions with `counts_toward_fairness=False` are excluded from counted support/average/gaps but shown as excluded support.
+- Child-paid personal transactions are supported as informational records using `FamilyTransaction.TYPE_CHILD_PAID`. The serializer enforces `paid_by='child'`, `counts_toward_fairness=False`, and `recurring=False`; they can be fetched with `/api/family/transactions/?child_paid=true` and viewed in the frontend at `/family/child-paid`.
 - Recurring generation lives in `backend/family_finances/services/recurring.py`. Template transactions have `recurring=True`; generated instances link to `generated_from` and are not themselves recurring templates.
 - Family module endpoints use `HasFamilyFinancesAccess`, then resolve the current user's active `FamilyMembership` before returning data.
+- Child activation/deactivation is handled by PATCHing `Child.active`; permanent deletion uses DELETE `/api/family/children/<id>/` and cascades linked `TransactionChildSplit` rows through the Django relationship.
 - Family-code onboarding extends invite-only registration: `family_code` is optional; a valid code links the new user to `Family`, ensures a starter child, and grants `family_finances` module access.
 
 ## Frontend Patterns
@@ -149,6 +151,7 @@ Two components in `routes/ProtectedRoute.jsx`:
 /api/family/children/          ← Child list/create
 /api/family/children/<id>/     ← Child get/update/deactivate
 /api/family/transactions/      ← Transaction list/create with filters
+/api/family/transactions/?child_paid=true ← Child-paid personal transaction list
 /api/family/transactions/<id>/ ← Transaction get/update/delete
 /api/family/transactions/<id>/duplicate/ ← Duplicate a transaction
 /api/family/dashboard/         ← Family dashboard/fairness totals

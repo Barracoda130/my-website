@@ -101,6 +101,8 @@
 - [x] URL patterns in `family_finances/urls.py`
 - [x] Frontend API functions in `frontend/src/api/family.js`
 - [x] Frontend Family Planner MVP pages under `frontend/src/pages/modules/family/`
+- [x] Child-paid personal transaction page and API filter
+- [x] Child activate/deactivate toggle and permanent delete action
 - [ ] Rich child detail page with monthly trend/category breakdown/history
 - [ ] Full transaction filter UI for child/date/type/category/fairness/recurring/large expense
 - [ ] Advanced split form for selecting multiple children and dividing shared expenses in the UI
@@ -118,7 +120,7 @@
 ## Current Status
 **Phase**: Core scaffolding complete. Budget Tracker is feature-rich, and Family Planner / Family Fairness Ledger MVP is implemented with family-code onboarding, split-aware fairness calculations, recurring support, and basic frontend pages.
 
-Latest update: Family Planner MVP added under `family_finances`; full backend test suite passes and frontend lint/build passes.
+Latest update: Family Planner children can now be activated/deactivated and permanently deleted; full backend test suite passes and frontend lint/build passes.
 - `SECRET_KEY` in `settings.py` is a placeholder — must be changed before any production deployment
 - API base URL is hardcoded in two places (`client.js` and `auth.js`) — consider extracting to a shared constant or environment variable
 - Backend security tests now exist for the implemented auth/Budget Tracker areas; broader feature/regression tests are still needed as modules grow

@@ -4,6 +4,7 @@ const navItems = [
   ['Overview', '/family'],
   ['Children', '/family/children'],
   ['Transactions', '/family/transactions'],
+  ['Child-paid', '/family/child-paid'],
   ['Fairness', '/family/fairness'],
 ]
 

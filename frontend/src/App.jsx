@@ -11,6 +11,7 @@ import BudgetYearPlanner from './pages/modules/budget/BudgetYearPlanner'
 import FamilyDashboard from './pages/modules/family/FamilyDashboard'
 import FamilyChildren from './pages/modules/family/FamilyChildren'
 import FamilyTransactions from './pages/modules/family/FamilyTransactions'
+import FamilyChildPaidTransactions from './pages/modules/family/FamilyChildPaidTransactions'
 import FamilyFairness from './pages/modules/family/FamilyFairness'
 import Unauthorized from './pages/Unauthorized'
 import NotFound from './pages/NotFound'
@@ -82,14 +83,19 @@ export default function App() {
             }
           />
 
-          {['/family/children', '/family/transactions', '/family/fairness'].map((path) => (
+          {[
+            ['/family/children', <FamilyChildren key="children" />],
+            ['/family/transactions', <FamilyTransactions key="transactions" />],
+            ['/family/child-paid', <FamilyChildPaidTransactions key="child-paid" />],
+            ['/family/fairness', <FamilyFairness key="fairness" />],
+          ].map(([path, element]) => (
             <Route
               key={path}
               path={path}
               element={
                 <ProtectedRoute>
                   <ModuleRoute moduleSlug="family_finances">
-                    {path.endsWith('children') ? <FamilyChildren /> : path.endsWith('transactions') ? <FamilyTransactions /> : <FamilyFairness />}
+                    {element}
                   </ModuleRoute>
                 </ProtectedRoute>
               }

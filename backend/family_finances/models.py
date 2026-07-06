@@ -102,6 +102,7 @@ class FamilyTransaction(TimeStampedModel):
     TYPE_SHARED = 'shared_family_expense'
     TYPE_LARGE = 'large_parental_contribution'
     TYPE_EXCLUDED = 'excluded_non_fairness_expense'
+    TYPE_CHILD_PAID = 'child_paid_personal_transaction'
     TYPE_OTHER = 'other'
 
     TYPE_CHOICES = [
@@ -110,6 +111,7 @@ class FamilyTransaction(TimeStampedModel):
         (TYPE_SHARED, 'Shared family expense'),
         (TYPE_LARGE, 'Large parental contribution'),
         (TYPE_EXCLUDED, 'Excluded / non-fairness expense'),
+        (TYPE_CHILD_PAID, 'Child-paid personal transaction'),
         (TYPE_OTHER, 'Other'),
     ]
 
@@ -146,12 +148,14 @@ class FamilyTransaction(TimeStampedModel):
     PAID_BY_MUM = 'mum'
     PAID_BY_DAD = 'dad'
     PAID_BY_BOTH = 'both'
+    PAID_BY_CHILD = 'child'
     PAID_BY_OTHER = 'other'
 
     PAID_BY_CHOICES = [
         (PAID_BY_MUM, 'Mum'),
         (PAID_BY_DAD, 'Dad'),
         (PAID_BY_BOTH, 'Both'),
+        (PAID_BY_CHILD, 'Child'),
         (PAID_BY_OTHER, 'Other'),
     ]
 

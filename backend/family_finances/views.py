@@ -106,9 +106,8 @@ def child_detail(request, child_id):
     if request.method == 'GET':
         return Response(ChildSerializer(child).data)
     if request.method == 'DELETE':
-        child.active = False
-        child.save()
-        return Response(ChildSerializer(child).data)
+        child.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
     serializer = ChildSerializer(child, data=request.data, partial=True)
     if serializer.is_valid():
         serializer.save()
@@ -143,6 +142,8 @@ def transactions(request):
             queryset = queryset.filter(recurring=True)
         if request.query_params.get('large') == 'true':
             queryset = queryset.filter(is_large_expense=True)
+        if request.query_params.get('child_paid') == 'true':
+            queryset = queryset.filter(type=FamilyTransaction.TYPE_CHILD_PAID)
         return Response(FamilyTransactionSerializer(queryset.distinct(), many=True).data)
     serializer = FamilyTransactionSerializer(data=request.data, context={'request': request, 'family': family})
     if serializer.is_valid():
