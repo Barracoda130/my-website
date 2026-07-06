@@ -13,6 +13,16 @@ class UserProfile(models.Model):
         return f"Profile of {self.user.username}"
 
 
+# ─── Module Registry ──────────────────────────────────────────────────────────
+# Add new module slugs here when you create new modules.
+AVAILABLE_MODULES = [
+    ('budget_tracker', 'Budget Tracker'),
+    ('family_finances', 'Family Finances'),
+]
+
+MODULE_CHOICES = AVAILABLE_MODULES
+
+
 class InviteToken(models.Model):
     """Single-use invite tokens for registration."""
     token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
@@ -38,14 +48,18 @@ class InviteToken(models.Model):
         return f"Invite {str(self.token)[:8]}... ({status})"
 
 
-# ─── Module Registry ──────────────────────────────────────────────────────────
-# Add new module slugs here when you create new modules.
-AVAILABLE_MODULES = [
-    ('budget_tracker', 'Budget Tracker'),
-    ('family_finances', 'Family Finances'),
-]
+class InviteTokenModuleAccess(models.Model):
+    """Module access that should be granted when an invite token is used."""
+    invite = models.ForeignKey(InviteToken, on_delete=models.CASCADE, related_name='module_presets')
+    module = models.CharField(max_length=64, choices=MODULE_CHOICES)
 
-MODULE_CHOICES = AVAILABLE_MODULES
+    class Meta:
+        unique_together = ('invite', 'module')
+        verbose_name = 'Invite Module Access'
+        verbose_name_plural = 'Invite Module Access'
+
+    def __str__(self):
+        return f"{self.invite} grants {self.module}"
 
 
 def has_module_access(self, module_name):

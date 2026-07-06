@@ -63,8 +63,9 @@ npm run dev    # runs on http://localhost:5173
 1. Go to `http://localhost:8000/admin/`
 2. Log in with superuser credentials
 3. Navigate to **Users → Invite Tokens → Add**
-4. Save — copy the UUID token
-5. Share link: `http://localhost:5173/register?invite=<token>`
+4. Optionally add one or more **Invite Module Access** inline rows to predefine the modules the user should receive
+5. Save — copy the generated registration link from the invite detail/list page
+6. Share link: `http://localhost:5173/register?invite=<token>` locally, or the generated production frontend link when `FRONTEND_BASE_URL` is set
 
 ### Granting Module Access
 1. Go to `http://localhost:8000/admin/`
@@ -127,6 +128,7 @@ my-website/
 
 ## Configuration Notes
 - **API base URL**: `frontend/src/api/client.js` exports `API_BASE_URL` from `VITE_API_BASE_URL`, falling back to `http://localhost:8000/api` for local development
+- **Generated invite links**: backend admin uses `FRONTEND_BASE_URL`, falling back to `http://localhost:5173`, to generate `/register?invite=<token>` links
 - **CORS**: local Vite origins are whitelisted only when `DEBUG=True`; production origins come from `CORS_ALLOWED_ORIGINS`
 - **JWT tokens**: stored in `localStorage` under keys `access_token` and `refresh_token`
 - **Time zone**: `Europe/London` (set in Django settings)

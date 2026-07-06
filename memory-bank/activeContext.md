@@ -101,11 +101,18 @@ The Budget Tracker foundation MVP has been implemented. The project now has a wo
   - Frontend API base URL now uses `VITE_API_BASE_URL` with local fallback
   - Added backend/frontend Railway config files, `.env.example` files, and `RAILWAY_DEPLOYMENT.md`
   - Verified `cd backend; python manage.py check; pytest` and `cd frontend; npm run lint; npm run build`
+- Admin invite module presets — 2026-07-06
+  - Added `InviteTokenModuleAccess` so invite tokens can carry predefined module access using the same module slug choices as `UserModuleAccess`
+  - Registration now converts invite module presets into `UserModuleAccess` grants when the invite is used
+  - Django admin invite pages now include inline module preset rows, selected-module display, and generated registration links based on `FRONTEND_BASE_URL`
+  - Added backend tests for single/multiple invite module grants, uniqueness, and family-code compatibility
+  - Verified `cd backend; python manage.py check; pytest` passes with 31 tests
 
 ## Current State of the App
 ### What is complete and working
 - Full JWT authentication flow (login, logout, token refresh, token blacklisting)
 - Invite-only registration with single-use UUID tokens
+- Invite tokens can include predefined module access from Django admin, so invited users receive selected modules automatically at registration
 - `AuthContext` providing global auth state to the React app
 - `ProtectedRoute` and `ModuleRoute` route guards
 - Dashboard page showing module cards based on user's granted access
@@ -119,6 +126,7 @@ The Budget Tracker foundation MVP has been implemented. The project now has a wo
   - Fairness dashboard calculations using split amounts and excluding non-fairness transactions where appropriate
   - Basic recurring transaction generation
 - Django admin for managing users, invite tokens, module access, and groups
+- Django admin invite creation includes generated frontend registration links and inline module access presets
 - Budget Tracker backend models, serializers, views, URLs, admin, and migration
 - Budget Tracker frontend with view-only dashboard, separate management page, default setup, manual transactions, monthly budgets, setup forms, and recurring item list/form
 - Budget Tracker reports-focused dashboard with monthly spending trends, category breakdowns, daily spending bars, top payees, budget-vs-actual, and transaction access via management buttons

@@ -1,8 +1,11 @@
 from django.contrib.auth.models import User
+from django.db import IntegrityError
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from .models import UserGroup, UserModuleAccess
+from family_finances.models import Family, FamilyMembership
+
+from .models import InviteToken, InviteTokenModuleAccess, UserGroup, UserModuleAccess
 
 
 class UserEndpointSecurityTests(APITestCase):
@@ -63,3 +66,67 @@ class UserEndpointSecurityTests(APITestCase):
         returned_group_ids = {item['id'] for item in response.data}
         self.assertIn(self.users_group.id, returned_group_ids)
         self.assertNotIn(self.other_group.id, returned_group_ids)
+
+
+class InviteRegistrationModulePresetTests(APITestCase):
+    """Registration tests for invite-level predefined module access."""
+
+    def setUp(self):
+        self.admin = User.objects.create_user(username='admin', password='test-password-123')
+
+    def register_with_invite(self, invite, username='invited-user', extra_data=None):
+        payload = {
+            'username': username,
+            'password': 'test-password-123',
+            'password_confirm': 'test-password-123',
+            'invite_token': str(invite.token),
+        }
+        if extra_data:
+            payload.update(extra_data)
+        return self.client.post('/api/auth/register/', payload, format='json')
+
+    def test_registering_with_invite_grants_preset_module_access(self):
+        invite = InviteToken.objects.create(created_by=self.admin)
+        InviteTokenModuleAccess.objects.create(invite=invite, module='budget_tracker')
+
+        response = self.register_with_invite(invite)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        user = User.objects.get(username='invited-user')
+        self.assertTrue(UserModuleAccess.objects.filter(user=user, module='budget_tracker').exists())
+
+    def test_registering_with_invite_grants_multiple_preset_modules(self):
+        invite = InviteToken.objects.create(created_by=self.admin)
+        InviteTokenModuleAccess.objects.create(invite=invite, module='budget_tracker')
+        InviteTokenModuleAccess.objects.create(invite=invite, module='family_finances')
+
+        response = self.register_with_invite(invite)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        user = User.objects.get(username='invited-user')
+        granted_modules = set(UserModuleAccess.objects.filter(user=user).values_list('module', flat=True))
+        self.assertEqual(granted_modules, {'budget_tracker', 'family_finances'})
+
+    def test_invite_module_presets_are_unique_per_invite(self):
+        invite = InviteToken.objects.create(created_by=self.admin)
+
+        InviteTokenModuleAccess.objects.create(invite=invite, module='budget_tracker')
+
+        with self.assertRaises(IntegrityError):
+            InviteTokenModuleAccess.objects.create(invite=invite, module='budget_tracker')
+
+    def test_family_code_registration_still_works_with_invite_presets(self):
+        family = Family.objects.create(name='Test Family', code='TEST-FAMILY', created_by=self.admin)
+        invite = InviteToken.objects.create(created_by=self.admin)
+        InviteTokenModuleAccess.objects.create(invite=invite, module='budget_tracker')
+
+        response = self.register_with_invite(
+            invite,
+            extra_data={'family_code': 'TEST-FAMILY'},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        user = User.objects.get(username='invited-user')
+        self.assertTrue(FamilyMembership.objects.filter(family=family, user=user).exists())
+        granted_modules = set(UserModuleAccess.objects.filter(user=user).values_list('module', flat=True))
+        self.assertEqual(granted_modules, {'budget_tracker', 'family_finances'})

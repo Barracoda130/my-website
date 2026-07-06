@@ -24,6 +24,8 @@ DEBUG = env_bool('DEBUG', default=True)
 
 ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 
+FRONTEND_BASE_URL = os.environ.get('FRONTEND_BASE_URL', 'http://localhost:5173')
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',

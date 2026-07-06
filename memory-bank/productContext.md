@@ -11,10 +11,10 @@ This is a personal web application serving as both a useful household tool and a
 ## How It Should Work
 
 ### User Journey
-1. Admin creates an invite token (via Django admin panel)
-2. Admin shares the invite link (`/register?invite=<token>`) with the new user
+1. Admin creates an invite token (via Django admin panel) and can preselect which modules the invite should grant
+2. Admin copies the generated invite link (`/register?invite=<token>`) and shares it with the new user
 3. New user visits the link, validates the token, and fills in their details
-4. After registration, the user is automatically logged in and lands on the dashboard
+4. After registration, the user automatically receives the invite's predefined module access, is logged in, and lands on the dashboard
 5. The dashboard shows only the modules the admin has granted them access to
 6. User clicks a module card to enter that module
 

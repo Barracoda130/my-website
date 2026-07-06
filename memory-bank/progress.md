@@ -4,9 +4,11 @@
 - ✅ Django project structure with `config`, `users`, `budget_tracker`, `family_finances` apps
 - ✅ JWT authentication: login (`/api/auth/login/`), token refresh (`/api/auth/token/refresh/`), logout with blacklisting (`/api/auth/logout/`)
 - ✅ Invite-only registration: token validation (`/api/auth/invite/validate/`) + registration (`/api/auth/register/`)
+- ✅ Invite tokens can define module access presets in Django admin, and registration automatically grants those modules
 - ✅ Current user endpoints: `/api/auth/me/`, `/api/auth/me/modules/`, `/api/auth/me/groups/`
 - ✅ `UserProfile`, `InviteToken`, `UserModuleAccess`, `UserGroup` models with migrations
 - ✅ Django admin registration for all models
+- ✅ Django admin invite workflow shows generated frontend registration links and inline invite module presets
 - ✅ CORS configured for Vite dev server (`localhost:5173`)
 - ✅ React app with Vite + Tailwind CSS v4
 - ✅ `AuthContext` — global auth state, login/logout, module access check
@@ -134,6 +136,7 @@
 **Phase**: Core scaffolding complete. Budget Tracker is feature-rich, and Family Planner / Family Fairness Ledger MVP is implemented with family-code onboarding, split-aware fairness calculations, recurring support, and basic frontend pages.
 
 Latest update: Railway Option A deployment prep is implemented for separate backend/frontend services and Railway Postgres; full backend test suite passes and frontend lint/build passes.
+- Admin invite creation now supports predefined module access via `InviteTokenModuleAccess`, generated registration links using `FRONTEND_BASE_URL`, and automatic module grants during registration.
 - `SECRET_KEY` is environment-driven; Railway must provide a real strong secret before production deployment
 - API base URL is environment-driven via `VITE_API_BASE_URL`
 - Backend security tests now exist for the implemented auth/Budget Tracker areas; broader feature/regression tests are still needed as modules grow

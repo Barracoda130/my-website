@@ -79,6 +79,13 @@ class RegisterSerializer(serializers.Serializer):
         invite.used_by = user
         invite.save()
 
+        for module_preset in invite.module_presets.all():
+            UserModuleAccess.objects.get_or_create(
+                user=user,
+                module=module_preset.module,
+                defaults={'granted_by': invite.created_by},
+            )
+
         if family:
             FamilyMembership.objects.get_or_create(
                 family=family,

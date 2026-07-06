@@ -42,12 +42,15 @@ backend/           ← Django project
 
 ### Invite-Only Registration
 - `InviteToken` model: UUID token, single-use, optional expiry
-- Admin creates tokens via Django admin; shares link manually
+- `InviteTokenModuleAccess` model: invite-level module presets that are automatically converted into `UserModuleAccess` rows when the invite is used
+- Admin creates tokens via Django admin, can preselect module access inline, and copies a generated frontend registration link
 - Token validated before showing registration form (UX: fail fast)
 - Token marked `is_used=True` and linked to the new user on successful registration
+- Admin-generated registration links use `FRONTEND_BASE_URL`, defaulting locally to `http://localhost:5173`
 
 ### Module Access System
 - `UserModuleAccess` model: links a `User` to a module slug string
+- `InviteTokenModuleAccess` model: links an invite token to module slug presets for automatic grants during registration
 - Module slugs are defined in `AVAILABLE_MODULES` list in `users/models.py`
 - Adding a new module requires: adding slug to `AVAILABLE_MODULES`, creating Django app, adding frontend route + page
 - `unique_together = ('user', 'module')` prevents duplicate grants
