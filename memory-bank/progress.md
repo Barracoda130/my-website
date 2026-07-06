@@ -78,6 +78,7 @@
 - ✅ Frontend API base URL is configurable via `VITE_API_BASE_URL`
 - ✅ Railway deployment documentation and env examples are added
 - ✅ Frontend Railway build is pinned to Node 22.12.0 to satisfy Vite requirements
+- ✅ Frontend Railway runtime uses `serve dist --single` instead of `vite preview` for production static serving and SPA fallback
 
 ## What's Left to Build
 
@@ -160,3 +161,4 @@ Latest update: Railway Option A deployment prep is implemented for separate back
 - **2026-06-26**: Improved Budget Tracker UX by persisting the selected month across Budget page navigation and making the CSV file picker visually obvious on hover/focus/click.
 - **2026-07-06**: Prepared Railway Option A deployment with separate backend/frontend services, Railway PostgreSQL via `DATABASE_URL`, env-driven production settings, WhiteNoise/Gunicorn runtime support, DRF auth throttling, `VITE_API_BASE_URL`, Railway config files, env examples, and deployment documentation.
 - **2026-07-06**: Fixed Railway frontend build compatibility by pinning Node 22.12.0 in `frontend/nixpacks.toml` and `frontend/package.json` engines after Railway attempted to build Vite with unsupported Node 18.
+- **2026-07-06**: Switched Railway frontend runtime from `vite preview` to `serve dist --single` for a more production-appropriate static server and SPA fallback, avoiding Vite preview custom-domain host blocking.

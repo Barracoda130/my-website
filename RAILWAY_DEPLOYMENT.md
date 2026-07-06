@@ -37,10 +37,10 @@ Required variables:
 VITE_API_BASE_URL=https://<your-backend>.up.railway.app/api
 ```
 
-The frontend start command serves the built Vite app on Railway's assigned port:
+The frontend start command serves the built Vite app on Railway's assigned port with `serve`, including SPA fallback for React routes:
 
 ```bash
-npm run preview -- --host 0.0.0.0 --port $PORT
+npm run start
 ```
 
 ## Security and rate limiting

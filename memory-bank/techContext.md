@@ -26,11 +26,12 @@
 | React DOM | ^19.2.6 | DOM rendering |
 | React Router DOM | ^7.18.0 | Client-side routing |
 | Axios | ^1.18.0 | HTTP client |
+| serve | ^14.2.5 | Production static server for Railway frontend service |
 | Vite | ^8.0.12 | Build tool / dev server |
 | Tailwind CSS | ^4.3.1 | Utility-first CSS (via `@tailwindcss/vite` plugin) |
 | @vitejs/plugin-react | ^6.0.1 | React fast refresh in Vite |
 
-Vite 8 requires Node `20.19+` or `22.12+`; Railway frontend builds are pinned to Node `22.12.0` using `frontend/nixpacks.toml` and `frontend/package.json` engines.
+Vite 8 requires Node `20.19+` or `22.12+`; Railway frontend builds are pinned to Node `22.12.0` using `frontend/nixpacks.toml` and `frontend/package.json` engines. Railway serves the built frontend with `serve dist --single` rather than `vite preview`, giving production-oriented static serving plus SPA route fallback.
 
 ## Development Setup
 
